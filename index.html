@@ -222,7 +222,14 @@ input[type=checkbox]:checked::after{
 .song-item .song-icon{color:var(--pink);font-size:14px;flex-shrink:0;}
 .song-item .song-name{
   flex:1;font-family:var(--font-jp);font-size:13px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  overflow:hidden;white-space:nowrap;position:relative;
+}
+.song-item .song-name .scroll-text{
+  display:inline-block;text-overflow:ellipsis;overflow:hidden;max-width:100%;
+}
+.song-item:hover .song-name .scroll-text{
+  overflow:visible;max-width:none;
+  animation:scrollName 5s linear infinite;
 }
 .song-item .song-actions{display:flex;gap:4px;}
 .song-item .song-actions button{
@@ -380,7 +387,21 @@ input[type=checkbox]:checked::after{
 .ms-result .ms-info{flex:1;min-width:0;}
 .ms-result .ms-title{
   font-family:var(--font-jp);font-size:13px;color:var(--text);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  overflow:hidden;white-space:nowrap;position:relative;
+}
+.ms-result .ms-title .scroll-text{
+  display:inline-block;text-overflow:ellipsis;overflow:hidden;max-width:100%;
+  transition:none;
+}
+.ms-result:hover .ms-title .scroll-text{
+  overflow:visible;max-width:none;
+  animation:scrollName 5s linear infinite;
+}
+@keyframes scrollName{
+  0%{transform:translateX(0);}
+  10%{transform:translateX(0);}
+  90%{transform:translateX(calc(-100% + 250px));}
+  100%{transform:translateX(calc(-100% + 250px));}
 }
 .ms-result .ms-meta{
   font-size:11px;color:var(--text-muted);margin-top:3px;
@@ -735,7 +756,7 @@ function renderRootSongs(songs) {
     const sel = selectedSong && selectedSong.filename === s && !selectedSong.playlist;
     return `<div class="song-item${sel ? ' selected' : ''}" onclick="selectSong(this,'${ea(s)}','')">
       <span class="song-icon">♪</span>
-      <span class="song-name">${esc(s.replace('.mid',''))}</span>
+      <span class="song-name"><span class="scroll-text">${esc(s.replace('.mid',''))}</span></span>
       <div class="song-actions">
         <button onclick="event.stopPropagation();playSingle('${ea(s)}','')" title="播放">▶</button>
         <button onclick="event.stopPropagation();addToPlaylistPrompt('${ea(s)}')" title="添加到歌单">+</button>
@@ -753,7 +774,7 @@ function renderPlaylistSongs(songs, plName) {
   list.innerHTML = songs.map(s => `
     <div class="song-item" onclick="selectSong(this,'${ea(s)}','${ea(plName)}')">
       <span class="song-icon">♪</span>
-      <span class="song-name">${esc(s.replace('.mid',''))}</span>
+      <span class="song-name"><span class="scroll-text">${esc(s.replace('.mid',''))}</span></span>
       <div class="song-actions">
         <button onclick="event.stopPropagation();playSingle('${ea(s)}','${ea(plName)}')" title="播放">▶</button>
         <button class="del-btn" onclick="event.stopPropagation();deleteSong('${ea(plName)}','${ea(s)}')" title="删除">×</button>
@@ -1000,7 +1021,7 @@ function updateTaskbar() {
     const act = w.classList.contains('active') && !min;
     const item = document.createElement('div');
     item.className = 'taskbar-item' + (act ? ' active' : '');
-    item.innerHTML = `<span>${d.icon}</span> <span>${d.title}</span>`;
+    item.innerHTML = `<span>${d.title}</span>`;
     item.onclick = () => toggleWindow(id);
     if (min) item.style.opacity = '0.5';
     c.appendChild(item);
@@ -1065,7 +1086,7 @@ function renderMsResults(results) {
   container.innerHTML = results.map((r, i) => `
     <div class="ms-result">
       <div class="ms-info">
-        <div class="ms-title">${esc(r.title || 'Untitled')}</div>
+        <div class="ms-title"><span class="scroll-text">${esc(r.title || 'Untitled')}</span></div>
         <div class="ms-meta">
           ${r.author ? `<span>👤 ${esc(r.author)}</span>` : ''}
           ${r.rating ? `<span>⭐ ${esc(r.rating)}</span>` : ''}
