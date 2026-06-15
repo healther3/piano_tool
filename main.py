@@ -32,11 +32,17 @@ CONFIG_PATH = os.path.join(_APP_DIR, "config.json")
 
 sys.path.insert(0, os.path.join(_BUNDLE_DIR, "core"))
 from loader import load_midi  # noqa: E402
-from manager import create_playlist, add_song_to_playlist, delete_song  # noqa: E402
+import manager as _mgr  # noqa: E402
+_mgr.ASSET_DIR = ASSET_DIR
+create_playlist = _mgr.create_playlist
+add_song_to_playlist = _mgr.add_song_to_playlist
+delete_song = _mgr.delete_song
 
 # ---- Playback engine (thread-safe, identical logic to original play.py) ----
 
 _stop_event = threading.Event()
+_pause_event = threading.Event()
+_skip_event = threading.Event()
 _play_lock = threading.Lock()
 _status = {
     "playing": False,
@@ -112,19 +118,32 @@ def _trigger_key(key_char):
 
 
 def _should_stop():
-    return _stop_event.is_set()
+    return _stop_event.is_set() or _skip_event.is_set()
 
 
 def _run_score(score, pedal):
     import pydirectinput
     pydirectinput.PAUSE = 0
     for atype, key, delay in score:
+        while _pause_event.is_set():
+            if _stop_event.is_set() or _skip_event.is_set():
+                pydirectinput.keyUp("space"); pydirectinput.keyUp("shift")
+                return False
+            time.sleep(0.05)
         if delay > 0:
             end = time.time() + delay
             while time.time() < end:
                 if _should_stop():
                     pydirectinput.keyUp("space"); pydirectinput.keyUp("shift")
                     return False
+                if _pause_event.is_set():
+                    remaining = end - time.time()
+                    while _pause_event.is_set():
+                        if _stop_event.is_set() or _skip_event.is_set():
+                            pydirectinput.keyUp("space"); pydirectinput.keyUp("shift")
+                            return False
+                        time.sleep(0.05)
+                    end = time.time() + max(0, remaining)
                 time.sleep(0.005)
         if _should_stop():
             pydirectinput.keyUp("space"); pydirectinput.keyUp("shift")
@@ -141,7 +160,7 @@ def _run_score(score, pedal):
 def _wait_or_stop(seconds):
     end = time.time() + seconds
     while time.time() < end:
-        if _should_stop():
+        if _stop_event.is_set():
             return False
         time.sleep(0.05)
     return True
@@ -179,6 +198,7 @@ def _thread_playlist(folder, pedal, octave, vel, loop, cd):
             for i, fp in enumerate(files):
                 if _stop_event.is_set():
                     return
+                _skip_event.clear()
                 name = os.path.basename(fp)
                 _update(current_song=name, song_index=i + 1)
                 try:
@@ -188,7 +208,7 @@ def _thread_playlist(folder, pedal, octave, vel, loop, cd):
                 if score:
                     ok = _run_score(score, pedal)
                     pydirectinput.keyUp("space"); pydirectinput.keyUp("shift")
-                    if not ok:
+                    if not ok and _stop_event.is_set():
                         return
                 if not _wait_or_stop(2):
                     return
@@ -306,6 +326,8 @@ class PianoApi:
         if not os.path.exists(path):
             return {"error": f"找不到文件: {filename}"}
         _stop_event.clear()
+        _pause_event.clear()
+        _skip_event.clear()
         t = threading.Thread(target=_thread_single,
                              args=(path, enable_pedal, int(octave_shift),
                                    int(min_velocity), int(countdown)),
@@ -321,6 +343,8 @@ class PianoApi:
         if not os.path.isdir(folder):
             return {"error": "目录不存在"}
         _stop_event.clear()
+        _pause_event.clear()
+        _skip_event.clear()
         t = threading.Thread(target=_thread_playlist,
                              args=(folder, enable_pedal, int(octave_shift),
                                    int(min_velocity), loop_forever,
@@ -330,13 +354,28 @@ class PianoApi:
         return {"success": True}
 
     def stop_playback(self):
+        _pause_event.clear()
         _stop_event.set()
-        _update(playing=False, current_song="")
+        _update(playing=False, current_song="", mode="")
+        return {"success": True}
+
+    def pause_playback(self):
+        if _pause_event.is_set():
+            _pause_event.clear()
+            return {"success": True, "paused": False}
+        else:
+            _pause_event.set()
+            return {"success": True, "paused": True}
+
+    def skip_song(self):
+        _skip_event.set()
         return {"success": True}
 
     def get_status(self):
         with _status_lock:
-            return dict(_status)
+            st = dict(_status)
+            st["paused"] = _pause_event.is_set()
+            return st
 
     # ---- Hotkey config ----
 

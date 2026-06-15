@@ -442,12 +442,12 @@ input[type=checkbox]:checked::after{
 .ms-loading{text-align:center;padding:30px;color:var(--text-muted);font-size:13px;}
 .ms-empty{text-align:center;padding:30px;color:var(--text-muted);font-size:13px;}
 
-/* ---------- Playlist Picker Modal ---------- */
-#pl-picker-overlay{
+/* ---------- Modal Overlays ---------- */
+.modal-overlay,#pl-picker-overlay{
   display:none;position:fixed;inset:0;z-index:50000;
   background:rgba(0,0,0,0.6);justify-content:center;align-items:center;
 }
-#pl-picker-overlay.show{display:flex;}
+.modal-overlay.show,#pl-picker-overlay.show{display:flex;}
 #pl-picker{
   background:var(--panel-bg);border:2px solid var(--border-light);border-radius:8px;
   box-shadow:var(--glow-pink);width:280px;max-height:400px;overflow:hidden;
@@ -535,11 +535,11 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
       </div>
 
       <div class="player-controls">
-        <button class="ctrl-btn play-list-btn" onclick="playCurrentPlaylist()" title="播放歌单">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6l10 6-10 6V6z"/><line x1="3" y1="4" x2="3" y2="20"/></svg>
+        <button class="ctrl-btn play-list-btn" onclick="skipSong()" title="下一首">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l10 8-10 8V4z"/><rect x="16" y="4" width="3" height="16" rx="1"/></svg>
         </button>
-        <button class="ctrl-btn" onclick="playSelected()" title="播放选中" id="play-btn">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <button class="ctrl-btn" onclick="togglePause()" title="暂停/继续" id="pause-btn">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" id="pause-icon"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
         </button>
         <button class="ctrl-btn stop-btn" onclick="stopPlayback()" title="停止">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
@@ -603,7 +603,9 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 
       <div class="tab-content active" id="lib-root">
         <div style="display:flex;gap:6px;margin-bottom:10px;">
-          <input class="input" id="song-search" placeholder="搜索曲目..." oninput="filterSongs()">
+          <input class="input" id="song-search" placeholder="搜索曲目..." oninput="filterSongs()" style="flex:1;">
+          <button class="btn btn-sm" onclick="playSelected()" title="播放选中">▶ 播放</button>
+          <button class="btn btn-sm btn-purple" onclick="playCurrentPlaylist()" title="播放全部">▶ 全部</button>
           <button class="btn btn-sm btn-cyan" onclick="importMidi()">导入</button>
         </div>
         <div class="song-list" id="root-song-list"></div>
@@ -614,7 +616,9 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
           <select class="input" id="playlist-select" onchange="loadPlaylistSongs(this.value)" style="flex:1;">
             <option value="">-- 选择歌单 --</option>
           </select>
-          <button class="btn btn-sm" onclick="importMidiToPlaylist()">导入到歌单</button>
+          <button class="btn btn-sm" onclick="playSelected()" title="播放选中">▶ 播放</button>
+          <button class="btn btn-sm btn-purple" onclick="playCurrentPlaylist()" title="播放歌单">▶ 歌单</button>
+          <button class="btn btn-sm btn-cyan" onclick="importMidiToPlaylist()">导入</button>
         </div>
         <div class="song-list" id="playlist-song-list"></div>
       </div>
@@ -702,6 +706,18 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
   <div id="pl-picker">
     <div class="pk-header"><span>添加到歌单</span><button onclick="closePlPicker()">×</button></div>
     <div class="pk-list" id="pk-list"></div>
+  </div>
+</div>
+
+<div id="del-confirm-overlay" class="modal-overlay" onclick="if(event.target===this)closeDelConfirm()">
+  <div style="background:var(--panel-bg);border:2px solid var(--red);border-radius:8px;padding:20px;width:280px;text-align:center;box-shadow:0 0 20px rgba(255,71,87,0.3);">
+    <div style="font-family:var(--font-pixel);font-size:8px;color:var(--red);margin-bottom:12px;">DELETE</div>
+    <div style="font-family:var(--font-jp);font-size:13px;margin-bottom:6px;">确定要删除这首曲目吗？</div>
+    <div id="del-confirm-name" style="font-size:14px;color:var(--pink);margin-bottom:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <button class="btn btn-sm" onclick="closeDelConfirm()" style="border-color:var(--text-muted);color:var(--text-muted);">取消</button>
+      <button class="btn btn-sm" onclick="confirmDelete()" style="border-color:var(--red);color:var(--red);">删除</button>
+    </div>
   </div>
 </div>
 
@@ -895,6 +911,23 @@ async function stopPlayback() {
   hideCountdown();
 }
 
+async function togglePause() {
+  const res = await pyApi.pause_playback();
+  if (res.success) {
+    const btn = document.getElementById('pause-icon');
+    if (res.paused) {
+      btn.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      document.getElementById('player-status-text').textContent = 'PAUSED';
+    } else {
+      btn.innerHTML = '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
+    }
+  }
+}
+
+async function skipSong() {
+  await pyApi.skip_song();
+}
+
 async function pollStatus() {
   try {
     const st = await pyApi.get_status();
@@ -905,10 +938,18 @@ async function pollStatus() {
 function updatePlayerUI(playing, st) {
   const vis = document.getElementById('visualizer');
   const txt = document.getElementById('player-status-text');
+  const pauseIcon = document.getElementById('pause-icon');
   if (playing && st) {
-    vis.classList.remove('paused');
-    txt.textContent = st.mode === 'playlist'
-      ? `PLAYING [${st.song_index}/${st.total_songs}]` : 'NOW PLAYING';
+    if (st.paused) {
+      vis.classList.add('paused');
+      txt.textContent = 'PAUSED';
+      pauseIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+    } else {
+      vis.classList.remove('paused');
+      txt.textContent = st.mode === 'playlist'
+        ? `PLAYING [${st.song_index}/${st.total_songs}]` : 'NOW PLAYING';
+      pauseIcon.innerHTML = '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
+    }
     if (st.current_song) {
       document.getElementById('player-song-name').textContent = st.current_song.replace('.mid', '');
       document.getElementById('player-sub-info').textContent =
@@ -918,6 +959,7 @@ function updatePlayerUI(playing, st) {
   } else {
     vis.classList.add('paused');
     txt.textContent = 'STANDBY';
+    pauseIcon.innerHTML = '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
   }
 }
 
@@ -983,8 +1025,23 @@ async function pickPlaylist(name) {
   }
 }
 
-async function deleteSong(playlist, filename) {
-  if (!confirm(`确定要从「${playlist}」删除「${filename}」吗？`)) return;
+let _delTarget = null;
+
+function deleteSong(playlist, filename) {
+  _delTarget = { playlist, filename };
+  document.getElementById('del-confirm-name').textContent = filename.replace('.mid','');
+  document.getElementById('del-confirm-overlay').classList.add('show');
+}
+
+function closeDelConfirm() {
+  document.getElementById('del-confirm-overlay').classList.remove('show');
+  _delTarget = null;
+}
+
+async function confirmDelete() {
+  if (!_delTarget) return;
+  const { playlist, filename } = _delTarget;
+  closeDelConfirm();
   const res = await pyApi.remove_song(playlist, filename);
   if (res.success) {
     toast('已删除 ♡');
