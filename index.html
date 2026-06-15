@@ -1046,6 +1046,8 @@ function switchLibTab(btn, tabId) {
 let msPage = 1;
 let msQuery = '';
 let msTotal = 0;
+let msHasNext = false;
+let msTotalPages = 1;
 
 async function checkMidiShowStatus() {
   const dot = document.getElementById('ms-dot');
@@ -1070,6 +1072,8 @@ async function searchMidiShow(page) {
     const res = await pyApi.search_midishow(msQuery, msPage, sort);
     if (res.error) { container.innerHTML = `<div class="ms-empty">${esc(res.error)}</div>`; return; }
     msTotal = res.total || 0;
+    msHasNext = res.has_next || false;
+    msTotalPages = res.total_pages || msPage;
     renderMsResults(res.results || []);
     updateMsPagination();
   } catch (e) {
@@ -1104,9 +1108,9 @@ function updateMsPagination() {
   const info = document.getElementById('ms-page-info');
   const hasResults = msTotal > 0 || msPage > 1;
   pg.style.display = hasResults ? 'flex' : 'none';
-  info.textContent = `第 ${msPage} 页`;
+  info.textContent = msTotalPages > 1 ? `${msPage} / ${msTotalPages}` : `第 ${msPage} 页`;
   document.getElementById('ms-prev').disabled = msPage <= 1;
-  document.getElementById('ms-next').disabled = msTotal > 0 && msTotal <= msPage * 20;
+  document.getElementById('ms-next').disabled = !msHasNext;
 }
 
 function msPagePrev() { if (msPage > 1) searchMidiShow(msPage - 1); }

@@ -133,7 +133,34 @@ class MidiShowClient:
         if not results:
             results = self._parse_search_fallback(soup)
 
-        return {"query": query, "page": page, "total": total, "results": results}
+        has_next = False
+        total_pages = page
+        pagination = soup.select("ul.pagination li a, .pagination a, nav[aria-label] a")
+        page_numbers = set()
+        for a in pagination:
+            href = a.get("href", "")
+            text = a.get_text(strip=True)
+            pm = re.search(r"page=(\d+)", href)
+            if pm:
+                page_numbers.add(int(pm.group(1)))
+            if text.isdigit():
+                page_numbers.add(int(text))
+            if "next" in a.get("rel", []) or "»" in text or "›" in text or "下一页" in text:
+                has_next = True
+
+        if page_numbers:
+            total_pages = max(page_numbers)
+            if total_pages > page:
+                has_next = True
+
+        if not has_next and not page_numbers and len(results) >= 20:
+            has_next = True
+
+        return {
+            "query": query, "page": page, "total": total,
+            "total_pages": total_pages, "has_next": has_next,
+            "results": results,
+        }
 
     def _parse_card(self, card) -> dict:
         item = {}
