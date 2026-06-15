@@ -200,6 +200,10 @@ class MidiShowClient:
     def download(self, midi_page_url: str) -> tuple:
         """
         Download a MIDI file from its detail page URL.
+        Three-step flow:
+          1. GET detail page → extract midi ID
+          2. GET /midi/download?id=X → POST with CSRF → get download-file token
+          3. GET /midi/download-file?t=TOKEN → actual .mid binary
         Returns (filename, binary_data) or (None, error_string).
         """
         self._ensure_login()
@@ -216,51 +220,80 @@ class MidiShowClient:
                 if not title:
                     title = "download"
 
-            dl_link = self._find_download_link(soup, r.text)
-            if not dl_link:
-                return None, "找不到下载链接，可能需要积分或登录状态已过期"
+            # Extract midi ID from URL or page
+            midi_id = None
+            id_match = re.search(r"(\d{4,})", midi_page_url)
+            if id_match:
+                midi_id = id_match.group(1)
+            if not midi_id:
+                player = soup.find(attrs={"data-id": True})
+                if player:
+                    midi_id = player["data-id"]
 
-            if not dl_link.startswith("http"):
-                dl_link = BASE + dl_link
-
-            r2 = self._session.get(dl_link, timeout=30, allow_redirects=True)
-
-            if r2.status_code == 200 and len(r2.content) > 50:
-                ct = r2.headers.get("Content-Type", "")
-                if "mid" in ct or "octet" in ct or "audio" in ct or r2.content[:4] == b"MThd":
-                    fname = title if title.endswith(".mid") else title + ".mid"
-                    return fname, r2.content
+            if midi_id:
+                result = self._download_via_credits(midi_id, title)
+                if result[0]:
+                    return result
 
             mid_data = self._try_player_download(soup, r.text)
             if mid_data:
                 fname = title if title.endswith(".mid") else title + ".mid"
                 return fname, mid_data
 
-            return None, "下载失败：服务器未返回有效的 MIDI 文件"
+            return None, "下载失败：积分不足或服务器未返回有效的 MIDI 文件"
 
         except Exception as e:
             print(f"[midishow download error] {e}")
             return None, f"下载出错: {e}"
 
-    def _find_download_link(self, soup, html: str) -> str | None:
-        for a in soup.find_all("a", href=True):
-            href = a["href"]
-            text = a.get_text(strip=True).lower()
-            if "download" in href.lower() or "下载" in text:
-                if ".mid" in href.lower() or "download" in href.lower():
-                    return href
+    def _download_via_credits(self, midi_id: str, title: str) -> tuple:
+        """Three-step credits-based download."""
+        try:
+            # Step 1: GET download page
+            dl_url = f"{BASE}/midi/download?id={midi_id}"
+            r1 = self._session.get(dl_url, timeout=15)
+            soup1 = BeautifulSoup(r1.text, "html.parser")
 
-        dl_match = re.search(
-            r'href=["\']([^"\']*(?:download|\.mid)[^"\']*)["\']', html, re.I
-        )
-        if dl_match:
-            return dl_match.group(1)
+            dl_form = soup1.find("form", {"id": "download-form"})
+            if not dl_form:
+                return None, "找不到下载表单"
 
-        for a in soup.find_all("a", {"class": re.compile(r"download|btn.*download", re.I)}):
-            if a.get("href"):
-                return a["href"]
+            csrf = ""
+            csrf_el = dl_form.find("input", {"name": "_csrf"})
+            if csrf_el:
+                csrf = csrf_el.get("value", "")
 
-        return None
+            # Step 2: POST to confirm download (costs credits)
+            r2 = self._session.post(dl_url, data={"_csrf": csrf}, timeout=15, allow_redirects=True)
+            soup2 = BeautifulSoup(r2.text, "html.parser")
+
+            # Find the download-file link in the response
+            file_link = None
+            for a in soup2.find_all("a", href=True):
+                if "download-file" in a["href"]:
+                    file_link = a["href"]
+                    break
+
+            if not file_link:
+                return None, "确认下载后未找到文件链接（积分可能不足）"
+
+            if not file_link.startswith("http"):
+                file_link = BASE + file_link
+
+            # Step 3: GET the actual MIDI file
+            r3 = self._session.get(file_link, timeout=30)
+            if r3.status_code == 200 and r3.content[:4] == b"MThd":
+                cd = r3.headers.get("Content-Disposition", "")
+                fname_match = re.search(r'filename="?([^";]+)', cd)
+                if fname_match:
+                    fname = fname_match.group(1)
+                else:
+                    fname = title if title.endswith(".mid") else title + ".mid"
+                return fname, r3.content
+
+            return None, "服务器未返回有效的 MIDI 文件"
+        except Exception as e:
+            return None, f"积分下载失败: {e}"
 
     def _try_player_download(self, soup, html: str) -> bytes | None:
         """Try to extract MIDI data from the web player embed."""

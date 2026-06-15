@@ -370,6 +370,60 @@ input[type=checkbox]:checked::after{
 #loading-overlay .ld-dots span:nth-child(3){animation-delay:.3s;}
 @keyframes ldDot{from{opacity:.2;transform:scale(.7);}to{opacity:1;transform:scale(1);}}
 
+/* ---------- MidiShow Search Results ---------- */
+.ms-result{
+  display:flex;gap:10px;padding:10px;
+  background:rgba(0,0,0,0.2);border:1px solid transparent;
+  border-radius:4px;transition:all .15s;margin-bottom:4px;
+}
+.ms-result:hover{background:rgba(255,105,180,0.08);border-color:rgba(255,105,180,0.2);}
+.ms-result .ms-info{flex:1;min-width:0;}
+.ms-result .ms-title{
+  font-family:var(--font-jp);font-size:13px;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.ms-result .ms-meta{
+  font-size:11px;color:var(--text-muted);margin-top:3px;
+  display:flex;gap:8px;flex-wrap:wrap;
+}
+.ms-result .ms-meta span{display:flex;align-items:center;gap:2px;}
+.ms-result .ms-dl-btn{
+  align-self:center;flex-shrink:0;padding:6px 12px;
+  border:1px solid var(--cyan);color:var(--cyan);
+  background:rgba(0,255,255,0.08);border-radius:4px;
+  font-family:var(--font-jp);font-size:11px;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.ms-result .ms-dl-btn:hover{background:rgba(0,255,255,0.2);box-shadow:var(--glow-cyan);}
+.ms-result .ms-dl-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+.ms-pagination{
+  display:flex;justify-content:center;gap:8px;margin-top:10px;padding-top:8px;
+  border-top:1px solid rgba(255,105,180,0.1);
+}
+.ms-pagination button{
+  padding:4px 12px;border:1px solid rgba(255,105,180,0.2);
+  background:rgba(0,0,0,0.2);color:var(--text-muted);
+  border-radius:3px;cursor:pointer;font-size:11px;transition:all .15s;
+}
+.ms-pagination button:hover:not(:disabled){border-color:var(--pink);color:var(--pink);}
+.ms-pagination button:disabled{opacity:0.3;cursor:not-allowed;}
+.ms-pagination .pg-info{font-size:11px;color:var(--text-muted);display:flex;align-items:center;}
+
+.ms-status-dot{
+  display:inline-block;width:8px;height:8px;border-radius:50%;
+  margin-right:4px;vertical-align:middle;
+}
+.ms-status-dot.online{background:#00FF88;box-shadow:0 0 6px rgba(0,255,136,0.5);}
+.ms-status-dot.offline{background:var(--red);box-shadow:0 0 6px rgba(255,71,87,0.5);}
+.ms-status-dot.loading{background:var(--gold);animation:ldDot .6s ease-in-out infinite alternate;}
+
+.ms-loading{text-align:center;padding:30px;color:var(--text-muted);font-size:13px;}
+.ms-empty{text-align:center;padding:30px;color:var(--text-muted);font-size:13px;}
+
+select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%23FF69B4' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;padding-right:28px;}
+
 @media(max-width:768px){
   .window{min-width:280px !important;width:calc(100vw - 20px) !important;left:10px !important;}
   .settings-grid{grid-template-columns:1fr;}
@@ -403,6 +457,10 @@ input[type=checkbox]:checked::after{
     <div class="desktop-icon" onclick="toggleWindow('playlist-win')">
       <div class="icon-img">💿</div>
       <div class="icon-label">歌单</div>
+    </div>
+    <div class="desktop-icon" onclick="toggleWindow('midishow-win')">
+      <div class="icon-img">🌐</div>
+      <div class="icon-label">MidiShow</div>
     </div>
   </div>
 
@@ -504,6 +562,41 @@ input[type=checkbox]:checked::after{
     <div class="resize-handle" onmousedown="startResize(event,'library-win')"></div>
   </div>
 
+  <!-- ==================== MIDISHOW WINDOW ==================== -->
+  <div class="window minimized" id="midishow-win" style="width:520px;top:50px;left:200px;height:540px;">
+    <div class="titlebar" onmousedown="startDrag(event,'midishow-win')">
+      <span class="win-icon">🌐</span>
+      <span class="win-title"><span class="ms-status-dot loading" id="ms-dot"></span>midishow.exe</span>
+      <div class="win-btns">
+        <div class="win-btn" onclick="minimizeWin('midishow-win')">_</div>
+        <div class="win-btn close" onclick="hideWin('midishow-win')">×</div>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="section-header">MIDISHOW SEARCH</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <input class="input" id="ms-query" placeholder="搜索 MIDI 曲目..."
+               onkeydown="if(event.key==='Enter')searchMidiShow()">
+        <select class="input" id="ms-sort" style="width:110px;flex-shrink:0;">
+          <option value="default">综合排序</option>
+          <option value="popularity">人气热度</option>
+          <option value="marks">评分最高</option>
+          <option value="time_desc">最新上传</option>
+        </select>
+        <button class="btn btn-sm btn-cyan" onclick="searchMidiShow()">搜索</button>
+      </div>
+      <div id="ms-results">
+        <div class="ms-empty">在上方输入关键词搜索 MidiShow 曲库 ♡</div>
+      </div>
+      <div class="ms-pagination" id="ms-pagination" style="display:none;">
+        <button id="ms-prev" onclick="msPagePrev()">◀ 上一页</button>
+        <span class="pg-info" id="ms-page-info">1</span>
+        <button id="ms-next" onclick="msPageNext()">下一页 ▶</button>
+      </div>
+    </div>
+    <div class="resize-handle" onmousedown="startResize(event,'midishow-win')"></div>
+  </div>
+
   <!-- ==================== PLAYLIST WINDOW ==================== -->
   <div class="window" id="playlist-win" style="width:320px;top:100px;left:280px;height:420px;">
     <div class="titlebar" onmousedown="startDrag(event,'playlist-win')">
@@ -571,6 +664,7 @@ async function init() {
   updateClock();
   setInterval(updateClock, 10000);
   setInterval(pollStatus, 800);
+  checkMidiShowStatus();
 }
 
 // ==================== Data Loading ====================
@@ -852,6 +946,7 @@ const WIN_DEFS = {
   'player-win':   { title: '♪ KAngel Piano', icon: '♪' },
   'library-win':  { title: '📁 曲库',       icon: '📁' },
   'playlist-win': { title: '💿 歌单',       icon: '💿' },
+  'midishow-win': { title: '🌐 MidiShow',   icon: '🌐' },
 };
 
 let dragData = null, resizeData = null;
@@ -922,6 +1017,97 @@ function switchLibTab(btn, tabId) {
   if (tabId === 'playlist') {
     const v = document.getElementById('playlist-select').value;
     if (v) loadPlaylistSongs(v);
+  }
+}
+
+// ==================== MidiShow Search ====================
+
+let msPage = 1;
+let msQuery = '';
+let msTotal = 0;
+
+async function checkMidiShowStatus() {
+  const dot = document.getElementById('ms-dot');
+  try {
+    const res = await pyApi.midishow_health();
+    dot.className = 'ms-status-dot ' + (res.logged_in ? 'online' : 'offline');
+  } catch (_) {
+    dot.className = 'ms-status-dot offline';
+  }
+}
+
+async function searchMidiShow(page) {
+  const q = document.getElementById('ms-query').value.trim();
+  if (!q) return;
+  msQuery = q;
+  msPage = page || 1;
+  const sort = document.getElementById('ms-sort').value;
+  const container = document.getElementById('ms-results');
+  container.innerHTML = '<div class="ms-loading">搜索中...</div>';
+
+  try {
+    const res = await pyApi.search_midishow(msQuery, msPage, sort);
+    if (res.error) { container.innerHTML = `<div class="ms-empty">${esc(res.error)}</div>`; return; }
+    msTotal = res.total || 0;
+    renderMsResults(res.results || []);
+    updateMsPagination();
+  } catch (e) {
+    container.innerHTML = '<div class="ms-empty">搜索失败，请检查网络</div>';
+  }
+}
+
+function renderMsResults(results) {
+  const container = document.getElementById('ms-results');
+  if (!results.length) {
+    container.innerHTML = '<div class="ms-empty">没有找到结果</div>';
+    return;
+  }
+  container.innerHTML = results.map((r, i) => `
+    <div class="ms-result">
+      <div class="ms-info">
+        <div class="ms-title">${esc(r.title || 'Untitled')}</div>
+        <div class="ms-meta">
+          ${r.author ? `<span>👤 ${esc(r.author)}</span>` : ''}
+          ${r.rating ? `<span>⭐ ${esc(r.rating)}</span>` : ''}
+          ${r.duration ? `<span>⏱ ${esc(r.duration)}</span>` : ''}
+          ${r.size ? `<span>📦 ${esc(r.size)}</span>` : ''}
+        </div>
+      </div>
+      <button class="ms-dl-btn" id="ms-dl-${i}" onclick="downloadFromMs(${i},'${ea(r.url || '')}')">下载</button>
+    </div>
+  `).join('');
+}
+
+function updateMsPagination() {
+  const pg = document.getElementById('ms-pagination');
+  const info = document.getElementById('ms-page-info');
+  const hasResults = msTotal > 0 || msPage > 1;
+  pg.style.display = hasResults ? 'flex' : 'none';
+  info.textContent = `第 ${msPage} 页`;
+  document.getElementById('ms-prev').disabled = msPage <= 1;
+  document.getElementById('ms-next').disabled = msTotal > 0 && msTotal <= msPage * 20;
+}
+
+function msPagePrev() { if (msPage > 1) searchMidiShow(msPage - 1); }
+function msPageNext() { searchMidiShow(msPage + 1); }
+
+async function downloadFromMs(idx, url) {
+  if (!url) { toast('无效的下载链接', true); return; }
+  const btn = document.getElementById('ms-dl-' + idx);
+  if (btn) { btn.disabled = true; btn.textContent = '下载中...'; }
+
+  try {
+    const res = await pyApi.download_midishow(url, '');
+    if (res.success) {
+      toast(`已下载: ${res.filename} ♡`);
+      loadRootSongs();
+    } else {
+      toast(res.error || '下载失败', true);
+    }
+  } catch (e) {
+    toast('下载失败: ' + e, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '下载'; }
   }
 }
 

@@ -11,6 +11,7 @@ import threading
 import time
 import glob as globmod
 
+import requests as http_requests
 import webview
 
 # ---- Path resolution (works both in dev and after PyInstaller freeze) ----
@@ -24,6 +25,8 @@ else:
 
 ASSET_DIR = os.path.join(_APP_DIR, "asset")
 os.makedirs(ASSET_DIR, exist_ok=True)
+
+PROXY_URL = "https://piano-tool.onrender.com"
 
 sys.path.insert(0, os.path.join(_BUNDLE_DIR, "core"))
 from loader import load_midi  # noqa: E402
@@ -290,6 +293,74 @@ class PianoApi:
     def get_status(self):
         with _status_lock:
             return dict(_status)
+
+    # ---- MidiShow integration ----
+
+    def midishow_health(self):
+        try:
+            r = http_requests.get(f"{PROXY_URL}/api/health", timeout=10)
+            return r.json()
+        except Exception as e:
+            return {"status": "unreachable", "message": str(e)}
+
+    def search_midishow(self, query, page=1, sort="default"):
+        try:
+            r = http_requests.get(
+                f"{PROXY_URL}/api/search",
+                params={"q": query, "page": int(page), "sort": sort},
+                timeout=20,
+            )
+            return r.json()
+        except Exception as e:
+            return {"error": f"搜索失败: {e}", "results": []}
+
+    def download_midishow(self, url, target_playlist=""):
+        """Download a MIDI file via the proxy and save to asset/."""
+        try:
+            r = http_requests.get(
+                f"{PROXY_URL}/api/download",
+                params={"url": url},
+                timeout=60,
+                stream=True,
+            )
+            if r.status_code != 200:
+                try:
+                    err = r.json().get("error", "下载失败")
+                except Exception:
+                    err = f"HTTP {r.status_code}"
+                return {"error": err}
+
+            fname = "download.mid"
+            xfn = r.headers.get("X-Filename")
+            if xfn:
+                fname = xfn
+            else:
+                cd = r.headers.get("Content-Disposition", "")
+                if "filename=" in cd:
+                    import re
+                    m = re.search(r'filename="?([^";]+)', cd)
+                    if m:
+                        fname = m.group(1)
+
+            fname = fname.strip()
+            if not fname.lower().endswith(".mid"):
+                fname += ".mid"
+
+            if target_playlist:
+                dest_dir = os.path.join(ASSET_DIR, target_playlist)
+            else:
+                dest_dir = ASSET_DIR
+            os.makedirs(dest_dir, exist_ok=True)
+
+            dest = os.path.join(dest_dir, fname)
+            with open(dest, "wb") as f:
+                for chunk in r.iter_content(8192):
+                    f.write(chunk)
+
+            return {"success": True, "filename": fname, "playlist": target_playlist}
+
+        except Exception as e:
+            return {"error": f"下载出错: {e}"}
 
 
 # ==================================================================
