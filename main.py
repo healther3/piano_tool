@@ -57,7 +57,7 @@ def _on_global_stop():
     _stop_event.set()
     _update(playing=False, current_song="")
 
-kb.add_hotkey("F9", _on_global_stop)
+kb.add_hotkey("F6", _on_global_stop)
 
 
 def _trigger_key(key_char):
