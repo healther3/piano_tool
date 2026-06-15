@@ -76,26 +76,42 @@ def _save_config(cfg: dict):
     except Exception:
         pass
 
-_current_hotkey = _load_config().get("stop_hotkey", "F6")
+_cfg = _load_config()
+_hotkeys = {
+    "stop": _cfg.get("stop_hotkey", "F6"),
+    "pause": _cfg.get("pause_hotkey", "F7"),
+    "skip": _cfg.get("skip_hotkey", "F8"),
+}
 
 def _on_global_stop():
+    _pause_event.clear()
     _stop_event.set()
     _update(playing=False, current_song="")
 
-def _register_hotkey(hotkey_str: str):
-    global _current_hotkey
+def _on_global_pause():
+    if _pause_event.is_set():
+        _pause_event.clear()
+    else:
+        _pause_event.set()
+
+def _on_global_skip():
+    _skip_event.set()
+
+def _register_all_hotkeys():
     try:
         kb.unhook_all_hotkeys()
     except Exception:
         pass
-    try:
-        kb.add_hotkey(hotkey_str, _on_global_stop)
-        _current_hotkey = hotkey_str
-    except Exception:
-        kb.add_hotkey("F6", _on_global_stop)
-        _current_hotkey = "F6"
+    _actions = {"stop": _on_global_stop, "pause": _on_global_pause, "skip": _on_global_skip}
+    for key, action in _actions.items():
+        hk = _hotkeys.get(key, "")
+        if hk:
+            try:
+                kb.add_hotkey(hk, action)
+            except Exception:
+                pass
 
-_register_hotkey(_current_hotkey)
+_register_all_hotkeys()
 
 
 def _trigger_key(key_char):
@@ -157,11 +173,13 @@ def _run_score(score, pedal):
     return True
 
 
-def _wait_or_stop(seconds):
+def _wait_or_stop(seconds, skip_ok=False):
     end = time.time() + seconds
     while time.time() < end:
         if _stop_event.is_set():
             return False
+        if skip_ok and _skip_event.is_set():
+            return True
         time.sleep(0.05)
     return True
 
@@ -210,7 +228,7 @@ def _thread_playlist(folder, pedal, octave, vel, loop, cd):
                     pydirectinput.keyUp("space"); pydirectinput.keyUp("shift")
                     if not ok and _stop_event.is_set():
                         return
-                if not _wait_or_stop(2):
+                if not _wait_or_stop(2, skip_ok=True):
                     return
             if not loop:
                 break
@@ -379,18 +397,19 @@ class PianoApi:
 
     # ---- Hotkey config ----
 
-    def get_stop_hotkey(self):
-        return {"hotkey": _current_hotkey}
+    def get_hotkeys(self):
+        return dict(_hotkeys)
 
-    def set_stop_hotkey(self, hotkey):
+    def set_hotkey(self, action, hotkey):
         hotkey = hotkey.strip()
-        if not hotkey:
-            return {"error": "快捷键不能为空"}
-        _register_hotkey(hotkey)
+        if not hotkey or action not in _hotkeys:
+            return {"error": "无效的快捷键设置"}
+        _hotkeys[action] = hotkey
+        _register_all_hotkeys()
         cfg = _load_config()
-        cfg["stop_hotkey"] = _current_hotkey
+        cfg[f"{action}_hotkey"] = hotkey
         _save_config(cfg)
-        return {"success": True, "hotkey": _current_hotkey}
+        return {"success": True, "action": action, "hotkey": hotkey}
 
     # ---- MidiShow integration ----
 
