@@ -112,7 +112,7 @@ def _trigger_key(key_char):
 
 
 def _should_stop():
-    return _stop_event.is_set() or kb.is_pressed("esc")
+    return _stop_event.is_set()
 
 
 def _run_score(score, pedal):

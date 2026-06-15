@@ -442,6 +442,33 @@ input[type=checkbox]:checked::after{
 .ms-loading{text-align:center;padding:30px;color:var(--text-muted);font-size:13px;}
 .ms-empty{text-align:center;padding:30px;color:var(--text-muted);font-size:13px;}
 
+/* ---------- Playlist Picker Modal ---------- */
+#pl-picker-overlay{
+  display:none;position:fixed;inset:0;z-index:50000;
+  background:rgba(0,0,0,0.6);justify-content:center;align-items:center;
+}
+#pl-picker-overlay.show{display:flex;}
+#pl-picker{
+  background:var(--panel-bg);border:2px solid var(--border-light);border-radius:8px;
+  box-shadow:var(--glow-pink);width:280px;max-height:400px;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+#pl-picker .pk-header{
+  padding:10px 14px;font-family:var(--font-pixel);font-size:8px;color:var(--cyan);
+  border-bottom:1px solid rgba(255,105,180,0.2);display:flex;justify-content:space-between;align-items:center;
+}
+#pl-picker .pk-header button{
+  background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;
+}
+#pl-picker .pk-header button:hover{color:var(--red);}
+#pl-picker .pk-list{overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:3px;}
+#pl-picker .pk-item{
+  padding:10px 12px;background:rgba(0,0,0,0.2);border:1px solid transparent;
+  border-radius:4px;cursor:pointer;font-family:var(--font-jp);font-size:13px;
+  color:var(--text);transition:all .15s;
+}
+#pl-picker .pk-item:hover{background:rgba(255,105,180,0.15);border-color:var(--pink);}
+
 select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%23FF69B4' stroke-width='1.5'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 8px center;padding-right:28px;}
 
@@ -669,6 +696,13 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 <div id="countdown-overlay">
   <div class="cd-num" id="cd-num">3</div>
   <div class="cd-text">切换到游戏窗口 ♡</div>
+</div>
+
+<div id="pl-picker-overlay" onclick="if(event.target===this)closePlPicker()">
+  <div id="pl-picker">
+    <div class="pk-header"><span>添加到歌单</span><button onclick="closePlPicker()">×</button></div>
+    <div class="pk-list" id="pk-list"></div>
+  </div>
 </div>
 
 <div id="toast-container"></div>
@@ -919,12 +953,26 @@ async function createPlaylist() {
   }
 }
 
+let _plPickerFile = '';
+
 async function addToPlaylistPrompt(filename) {
   const pls = await pyApi.get_playlists();
   if (!pls || !pls.length) { toast('还没有歌单，请先创建一个', true); return; }
-  const name = prompt('输入要添加到的歌单名称:\n' + pls.map(p => '  • ' + p.name).join('\n'));
-  if (!name) return;
-  const res = await pyApi.add_song_to_playlist_by_name(filename, name);
+  _plPickerFile = filename;
+  const list = document.getElementById('pk-list');
+  list.innerHTML = pls.map(p =>
+    `<div class="pk-item" onclick="pickPlaylist('${ea(p.name)}')">${esc(p.name)} (${p.count})</div>`
+  ).join('');
+  document.getElementById('pl-picker-overlay').classList.add('show');
+}
+
+function closePlPicker() {
+  document.getElementById('pl-picker-overlay').classList.remove('show');
+}
+
+async function pickPlaylist(name) {
+  closePlPicker();
+  const res = await pyApi.add_song_to_playlist_by_name(_plPickerFile, name);
   if (res.success) {
     toast(`已添加到「${name}」♡`);
     loadPlaylists();
