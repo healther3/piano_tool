@@ -1,0 +1,14 @@
+# Ignore top-level dot directories and files that are not repository metadata
+/.*
+!/.gitignore
+!/.git
+!/.github
+
+# Ignore Python bytecode folders
+__pycache__/
+*.py[cod]
+
+# Ignore common editor artifacts
+*.swp
+*~
+.DS_Store
