@@ -519,7 +519,7 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
         </button>
       </div>
 
-      <div style="text-align:center;font-size:10px;color:var(--text-muted);margin-bottom:10px;font-family:var(--font-jp);">
+      <div style="text-align:center;font-size:10px;color:var(--text-muted);margin-bottom:10px;font-family:var(--font-jp);" id="hotkey-hint">
         F6 / ESC 随时停止演奏
       </div>
       <div class="section-header">SETTINGS</div>
@@ -543,6 +543,15 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
         <div class="setting-item checkbox-item">
           <input type="checkbox" id="loop-forever" checked>
           <label>LOOP</label>
+        </div>
+        <div class="setting-item" style="grid-column:1/3;">
+          <label>STOP HOTKEY</label>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input class="input" id="stop-hotkey" placeholder="F6" readonly
+                   style="flex:1;text-align:center;cursor:pointer;font-size:14px;color:var(--pink);"
+                   onclick="startRecordHotkey()" title="点击后按下新的快捷键">
+            <button class="btn btn-sm" onclick="saveHotkey()">保存</button>
+          </div>
         </div>
       </div>
     </div>
@@ -689,6 +698,7 @@ async function init() {
   setInterval(updateClock, 10000);
   setInterval(pollStatus, 800);
   checkMidiShowStatus();
+  loadHotkey();
 }
 
 // ==================== Data Loading ====================
@@ -1041,6 +1051,59 @@ function switchLibTab(btn, tabId) {
   if (tabId === 'playlist') {
     const v = document.getElementById('playlist-select').value;
     if (v) loadPlaylistSongs(v);
+  }
+}
+
+// ==================== Hotkey Config ====================
+
+let _recordingHotkey = false;
+
+async function loadHotkey() {
+  try {
+    const res = await pyApi.get_stop_hotkey();
+    if (res.hotkey) {
+      document.getElementById('stop-hotkey').value = res.hotkey;
+      document.getElementById('hotkey-hint').textContent = res.hotkey + ' / ESC 随时停止演奏';
+    }
+  } catch (_) {}
+}
+
+function startRecordHotkey() {
+  const input = document.getElementById('stop-hotkey');
+  input.value = '请按下快捷键...';
+  input.style.borderColor = 'var(--cyan)';
+  _recordingHotkey = true;
+
+  function onKey(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (_recordingHotkey) {
+      const parts = [];
+      if (e.ctrlKey) parts.push('ctrl');
+      if (e.altKey) parts.push('alt');
+      if (e.shiftKey) parts.push('shift');
+      const key = e.key;
+      if (!['Control','Alt','Shift','Meta'].includes(key)) {
+        parts.push(key.length === 1 ? key.toLowerCase() : key);
+        input.value = parts.join('+');
+        input.style.borderColor = 'var(--pink)';
+        _recordingHotkey = false;
+        document.removeEventListener('keydown', onKey, true);
+      }
+    }
+  }
+  document.addEventListener('keydown', onKey, true);
+}
+
+async function saveHotkey() {
+  const val = document.getElementById('stop-hotkey').value.trim();
+  if (!val || val === '请按下快捷键...') { toast('请先按下一个快捷键', true); return; }
+  const res = await pyApi.set_stop_hotkey(val);
+  if (res.success) {
+    toast('快捷键已设为: ' + res.hotkey + ' ♡');
+    document.getElementById('hotkey-hint').textContent = res.hotkey + ' / ESC 随时停止演奏';
+  } else {
+    toast(res.error || '设置失败', true);
   }
 }
 

@@ -28,6 +28,7 @@ ASSET_DIR = os.path.join(_APP_DIR, "asset")
 os.makedirs(ASSET_DIR, exist_ok=True)
 
 PROXY_URL = "https://piano-tool.onrender.com"
+CONFIG_PATH = os.path.join(_APP_DIR, "config.json")
 
 sys.path.insert(0, os.path.join(_BUNDLE_DIR, "core"))
 from loader import load_midi  # noqa: E402
@@ -53,11 +54,42 @@ def _update(**kw):
         _status.update(kw)
 
 
+import json as _json
+
+def _load_config() -> dict:
+    try:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            return _json.load(f)
+    except Exception:
+        return {}
+
+def _save_config(cfg: dict):
+    try:
+        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+            _json.dump(cfg, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+_current_hotkey = _load_config().get("stop_hotkey", "F6")
+
 def _on_global_stop():
     _stop_event.set()
     _update(playing=False, current_song="")
 
-kb.add_hotkey("F6", _on_global_stop)
+def _register_hotkey(hotkey_str: str):
+    global _current_hotkey
+    try:
+        kb.unhook_all_hotkeys()
+    except Exception:
+        pass
+    try:
+        kb.add_hotkey(hotkey_str, _on_global_stop)
+        _current_hotkey = hotkey_str
+    except Exception:
+        kb.add_hotkey("F6", _on_global_stop)
+        _current_hotkey = "F6"
+
+_register_hotkey(_current_hotkey)
 
 
 def _trigger_key(key_char):
@@ -305,6 +337,21 @@ class PianoApi:
     def get_status(self):
         with _status_lock:
             return dict(_status)
+
+    # ---- Hotkey config ----
+
+    def get_stop_hotkey(self):
+        return {"hotkey": _current_hotkey}
+
+    def set_stop_hotkey(self, hotkey):
+        hotkey = hotkey.strip()
+        if not hotkey:
+            return {"error": "快捷键不能为空"}
+        _register_hotkey(hotkey)
+        cfg = _load_config()
+        cfg["stop_hotkey"] = _current_hotkey
+        _save_config(cfg)
+        return {"success": True, "hotkey": _current_hotkey}
 
     # ---- MidiShow integration ----
 
