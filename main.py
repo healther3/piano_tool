@@ -11,6 +11,7 @@ import threading
 import time
 import glob as globmod
 
+import keyboard as kb
 import requests as http_requests
 import webview
 
@@ -52,6 +53,13 @@ def _update(**kw):
         _status.update(kw)
 
 
+def _on_global_stop():
+    _stop_event.set()
+    _update(playing=False, current_song="")
+
+kb.add_hotkey("F9", _on_global_stop)
+
+
 def _trigger_key(key_char):
     import pydirectinput
     pydirectinput.PAUSE = 0
@@ -71,6 +79,10 @@ def _trigger_key(key_char):
         pydirectinput.press(key_char)
 
 
+def _should_stop():
+    return _stop_event.is_set() or kb.is_pressed("esc")
+
+
 def _run_score(score, pedal):
     import pydirectinput
     pydirectinput.PAUSE = 0
@@ -78,11 +90,11 @@ def _run_score(score, pedal):
         if delay > 0:
             end = time.time() + delay
             while time.time() < end:
-                if _stop_event.is_set():
+                if _should_stop():
                     pydirectinput.keyUp("space"); pydirectinput.keyUp("shift")
                     return False
                 time.sleep(0.005)
-        if _stop_event.is_set():
+        if _should_stop():
             pydirectinput.keyUp("space"); pydirectinput.keyUp("shift")
             return False
         if atype == "note":
@@ -97,7 +109,7 @@ def _run_score(score, pedal):
 def _wait_or_stop(seconds):
     end = time.time() + seconds
     while time.time() < end:
-        if _stop_event.is_set():
+        if _should_stop():
             return False
         time.sleep(0.05)
     return True
