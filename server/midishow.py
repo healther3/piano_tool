@@ -122,13 +122,24 @@ class MidiShowClient:
             if m:
                 total = int(m.group(1))
 
-        for card in soup.select(".midi-list-item, .search-result-item, .media, article"):
-            try:
-                item = self._parse_card(card)
-                if item and item.get("title"):
-                    results.append(item)
-            except Exception:
-                continue
+        wrapper = soup.find("div", class_="list-wrapper")
+        if wrapper:
+            for child in wrapper.find_all("div", recursive=False):
+                try:
+                    item = self._parse_card(child)
+                    if item and item.get("title") and item.get("url"):
+                        results.append(item)
+                except Exception:
+                    continue
+
+        if not results:
+            for card in soup.select(".midi-list-item, .search-result-item, .media, article"):
+                try:
+                    item = self._parse_card(card)
+                    if item and item.get("title") and item.get("url"):
+                        results.append(item)
+                except Exception:
+                    continue
 
         if not results:
             results = self._parse_search_fallback(soup)
@@ -165,13 +176,24 @@ class MidiShowClient:
     def _parse_card(self, card) -> dict:
         item = {}
 
-        link = card.find("a", href=re.compile(r"/midi/"))
-        if link:
-            item["title"] = link.get_text(strip=True)
-            href = link.get("href", "")
-            if not href.startswith("http"):
-                href = BASE + href
-            item["url"] = href
+        link = None
+        for a in card.find_all("a", href=re.compile(r"/midi/")):
+            href = a.get("href", "")
+            if "/search" in href or "/browse" in href or "/list" in href:
+                continue
+            text = a.get_text(strip=True)
+            if len(text) > 2:
+                link = a
+                break
+
+        if not link:
+            return item
+
+        item["title"] = link.get_text(strip=True)
+        href = link.get("href", "")
+        if not href.startswith("http"):
+            href = BASE + href
+        item["url"] = href
 
         author_el = card.find("a", href=re.compile(r"/user/|/u/"))
         if author_el:
@@ -197,7 +219,7 @@ class MidiShowClient:
         """Fallback parser: find all midi links and extract info from surrounding text."""
         results = []
         seen = set()
-        for a in soup.find_all("a", href=re.compile(r"/midi/.*download")):
+        for a in soup.find_all("a", href=re.compile(r"/midi/(?!browse|search|list)")):
             href = a.get("href", "")
             if href in seen:
                 continue
