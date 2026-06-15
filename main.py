@@ -191,7 +191,7 @@ def _thread_single(path, pedal, octave, vel, cd):
         if not score:
             return
         _update(playing=True, current_song=os.path.basename(path), mode="single")
-        if not _wait_or_stop(cd):
+        if not _wait_or_stop(cd, skip_ok=True):
             return
         _run_score(score, pedal)
         pydirectinput.keyUp("space"); pydirectinput.keyUp("shift")
@@ -210,7 +210,7 @@ def _thread_playlist(folder, pedal, octave, vel, loop, cd):
         total = len(files)
         _update(playing=True, mode="playlist",
                 playlist_name=os.path.basename(folder), total_songs=total)
-        if not _wait_or_stop(cd):
+        if not _wait_or_stop(cd, skip_ok=True):
             return
         while True:
             for i, fp in enumerate(files):
