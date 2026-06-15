@@ -631,7 +631,7 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
             <option value="">-- 选择歌单 --</option>
           </select>
           <button class="btn btn-sm" onclick="playSelected()" title="播放选中">▶ 播放</button>
-          <button class="btn btn-sm btn-purple" onclick="playCurrentPlaylist()" title="播放歌单">▶ 歌单</button>
+          <button class="btn btn-sm btn-purple" onclick="playCurrentPlaylist(document.getElementById('playlist-select').value)" title="播放歌单">▶ 歌单</button>
           <button class="btn btn-sm btn-cyan" onclick="importMidiToPlaylist()">导入</button>
         </div>
         <div class="song-list" id="playlist-song-list"></div>
@@ -837,6 +837,7 @@ function renderRootSongs(songs) {
       <div class="song-actions">
         <button onclick="event.stopPropagation();playSingle('${ea(s)}','')" title="播放">▶</button>
         <button onclick="event.stopPropagation();addToPlaylistPrompt('${ea(s)}')" title="添加到歌单">+</button>
+        <button class="del-btn" onclick="event.stopPropagation();deleteSong('','${ea(s)}')" title="删除">×</button>
       </div>
     </div>`;
   }).join('');
@@ -909,10 +910,11 @@ async function playSingle(filename, playlist) {
   showCountdown(s.countdown);
 }
 
-async function playCurrentPlaylist() {
+async function playCurrentPlaylist(pl) {
+  if (pl === undefined) pl = currentPlaylist;
   const s = getSettings();
   const res = await pyApi.play_playlist(
-    currentPlaylist, s.enable_pedal,
+    pl, s.enable_pedal,
     s.octave_shift, s.min_velocity, s.loop_forever, s.countdown
   );
   if (res.error) { toast(res.error, true); return; }
@@ -1067,8 +1069,12 @@ async function confirmDelete() {
   const res = await pyApi.remove_song(playlist, filename);
   if (res.success) {
     toast('已删除 ♡');
-    loadPlaylistSongs(playlist);
-    loadPlaylists();
+    if (playlist) {
+      loadPlaylistSongs(playlist);
+      loadPlaylists();
+    } else {
+      loadRootSongs();
+    }
   } else {
     toast(res.error || '删除失败', true);
   }
@@ -1236,6 +1242,7 @@ let msQuery = '';
 let msTotal = 0;
 let msHasNext = false;
 let msTotalPages = 1;
+let msResults = [];
 
 async function checkMidiShowStatus() {
   const dot = document.getElementById('ms-dot');
@@ -1270,6 +1277,7 @@ async function searchMidiShow(page) {
 }
 
 function renderMsResults(results) {
+  msResults = results;
   const container = document.getElementById('ms-results');
   if (!results.length) {
     container.innerHTML = '<div class="ms-empty">没有找到结果</div>';
@@ -1286,7 +1294,7 @@ function renderMsResults(results) {
           ${r.size ? `<span>📦 ${esc(r.size)}</span>` : ''}
         </div>
       </div>
-      <button class="ms-dl-btn" id="ms-dl-${i}" onclick="downloadFromMs(${i},'${ea(r.url || '')}')">下载</button>
+      <button class="ms-dl-btn" id="ms-dl-${i}" onclick="downloadFromMs(${i})">下载</button>
     </div>
   `).join('');
 }
@@ -1304,13 +1312,14 @@ function updateMsPagination() {
 function msPagePrev() { if (msPage > 1) searchMidiShow(msPage - 1); }
 function msPageNext() { searchMidiShow(msPage + 1); }
 
-async function downloadFromMs(idx, url) {
-  if (!url) { toast('无效的下载链接', true); return; }
+async function downloadFromMs(idx) {
+  const r = msResults[idx];
+  if (!r || !r.url) { toast('无效的下载链接', true); return; }
   const btn = document.getElementById('ms-dl-' + idx);
   if (btn) { btn.disabled = true; btn.textContent = '下载中...'; }
 
   try {
-    const res = await pyApi.download_midishow(url, '');
+    const res = await pyApi.download_midishow(r.url, '', r.title || '');
     if (res.success) {
       toast(`已下载: ${res.filename} ♡`);
       loadRootSongs();

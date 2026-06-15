@@ -5,15 +5,35 @@ All Python ↔ JS communication goes through pywebview's js_api bridge.
 """
 
 import os
+import re as _re
 import sys
 import shutil
 import threading
 import time
 import glob as globmod
+from urllib.parse import unquote
 
 import keyboard as kb
 import requests as http_requests
 import webview
+
+
+def _make_safe_fname(raw: str) -> str:
+    """将歌曲标题转换为合法的 Windows 文件名（不含扩展名）。
+    截取第一段有意义的名称，去除括号及其后的噪音信息。
+    """
+    # 截取第一段：遇到括号/方括号/竖线即停止
+    for sep in ('（', '(', '【', '[', '｜', '|', '〔', '{'):
+        idx = raw.find(sep)
+        if idx > 0:
+            raw = raw[:idx]
+    raw = raw.strip()
+    # 去除所有 Windows 非法字符（含全角变体）
+    raw = _re.sub(r'[<>:"/\\|?*？：＂＜＞＼／｜＊\x00-\x1f]', '', raw)
+    # Windows 不允许文件名以空格或点结尾
+    raw = raw.strip('. ')
+    # 长度上限
+    return raw[:80] if raw else 'download'
 
 # ---- Path resolution (works both in dev and after PyInstaller freeze) ----
 
@@ -431,7 +451,7 @@ class PianoApi:
         except Exception as e:
             return {"error": f"搜索失败: {e}", "results": []}
 
-    def download_midishow(self, url, target_playlist=""):
+    def download_midishow(self, url, target_playlist="", title=""):
         """Download a MIDI file via the proxy and save to asset/."""
         try:
             r = http_requests.get(
@@ -447,21 +467,30 @@ class PianoApi:
                     err = f"HTTP {r.status_code}"
                 return {"error": err}
 
-            fname = "download.mid"
+            # 从响应头获取文件名
+            raw_name = ""
             xfn = r.headers.get("X-Filename")
             if xfn:
-                fname = xfn
+                raw_name = unquote(xfn)
             else:
                 cd = r.headers.get("Content-Disposition", "")
-                if "filename=" in cd:
-                    import re
-                    m = re.search(r'filename="?([^";]+)', cd)
+                m = _re.search(r"filename\*=UTF-8''([^\s;]+)", cd)
+                if m:
+                    raw_name = unquote(m.group(1))
+                elif "filename=" in cd:
+                    m = _re.search(r'filename="?([^";]+)', cd)
                     if m:
-                        fname = m.group(1)
+                        raw_name = m.group(1)
+            raw_name = raw_name.strip()
+            if raw_name.lower().endswith('.mid'):
+                raw_name = raw_name[:-4].strip()
 
-            fname = fname.strip()
-            if not fname.lower().endswith(".mid"):
-                fname += ".mid"
+            # 若代理返回的是纯 ASCII 文件名（拼音），优先使用前端传来的中文 title
+            if title and not _re.search(r'[一-鿿぀-ヿ＀-￯]', raw_name):
+                raw_name = title
+
+            stem = _make_safe_fname(raw_name) if raw_name else 'download'
+            fname = stem + ".mid"
 
             if target_playlist:
                 dest_dir = os.path.join(ASSET_DIR, target_playlist)

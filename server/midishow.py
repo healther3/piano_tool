@@ -332,12 +332,7 @@ class MidiShowClient:
             # Step 3: GET the actual MIDI file
             r3 = self._session.get(file_link, timeout=30)
             if r3.status_code == 200 and r3.content[:4] == b"MThd":
-                cd = r3.headers.get("Content-Disposition", "")
-                fname_match = re.search(r'filename="?([^";]+)', cd)
-                if fname_match:
-                    fname = fname_match.group(1)
-                else:
-                    fname = title if title.endswith(".mid") else title + ".mid"
+                fname = title if title.endswith(".mid") else title + ".mid"
                 return fname, r3.content
 
             return None, "服务器未返回有效的 MIDI 文件"

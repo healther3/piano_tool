@@ -5,6 +5,7 @@ Deploy to Render / Railway / Fly.io free tier.
 """
 
 import os
+from urllib.parse import quote
 
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
@@ -65,12 +66,13 @@ def download():
     if fname is None:
         return jsonify({"error": data}), 400
 
+    encoded = quote(fname, safe='')
     return Response(
         data,
         mimetype="application/octet-stream",
         headers={
-            "Content-Disposition": f'attachment; filename="{fname}"',
-            "X-Filename": fname,
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded}",
+            "X-Filename": encoded,
         },
     )
 
