@@ -42,38 +42,30 @@ class MidiShowClient:
             r.raise_for_status()
             soup = BeautifulSoup(r.text, "html.parser")
 
+            form = soup.find("form", {"id": "login-form"})
+            if not form:
+                form = soup.find("form", {"action": re.compile(r"login", re.I)})
+
             csrf = ""
-            csrf_input = soup.find("input", {"name": "_csrf"})
+            csrf_input = (form or soup).find("input", {"name": "_csrf"})
             if csrf_input:
                 csrf = csrf_input.get("value", "")
+            if not csrf:
+                meta = soup.find("meta", {"name": "csrf-token"})
+                if meta:
+                    csrf = meta.get("content", "")
 
-            form = soup.find("form")
-            fields = {}
+            payload = {
+                "_csrf": csrf,
+                "LoginForm[identity]": self._user,
+                "LoginForm[password]": self._pass,
+            }
+
             if form:
                 for inp in form.find_all("input"):
                     name = inp.get("name")
-                    if name:
-                        fields[name] = inp.get("value", "")
-
-            identity_key = None
-            password_key = None
-            for k in fields:
-                kl = k.lower()
-                if "identity" in kl or "username" in kl or "email" in kl or "login" in kl:
-                    if "password" not in kl:
-                        identity_key = k
-                if "password" in kl or "passwd" in kl:
-                    password_key = k
-
-            if not identity_key:
-                identity_key = "LoginForm[identity]"
-            if not password_key:
-                password_key = "LoginForm[password]"
-
-            payload = dict(fields)
-            payload["_csrf"] = csrf
-            payload[identity_key] = self._user
-            payload[password_key] = self._pass
+                    if name and name not in payload:
+                        payload[name] = inp.get("value", "")
 
             action = LOGIN_URL
             if form and form.get("action"):
