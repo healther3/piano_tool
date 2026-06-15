@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>♡ KAngel Piano ♡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   NEEDY GIRL OVERDOSE — Desktop OS Aesthetic
+   ============================================================ */
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --pink:#FF69B4; --hot-pink:#FF1493; --neon-purple:#A855F7;
+  --deep-purple:#1a0a2e; --panel-bg:#2d1b4e; --panel-bg2:#3d2b5e;
+  --cyan:#00FFFF; --gold:#FFD700; --red:#FF4757;
+  --text:#f0e6ff; --text-muted:#b8a0d0;
+  --border-light:rgba(255,105,180,0.4);
+  --glow-pink:0 0 10px rgba(255,105,180,0.5),0 0 20px rgba(255,105,180,0.2);
+  --glow-cyan:0 0 10px rgba(0,255,255,0.5),0 0 20px rgba(0,255,255,0.2);
+  --font-pixel:'Press Start 2P',monospace;
+  --font-jp:'DotGothic16','Noto Sans SC',sans-serif;
+  --font-ui:'Noto Sans SC','DotGothic16',sans-serif;
+  --titlebar-h:32px;
+}
+html,body{height:100%;overflow:hidden;font-family:var(--font-ui);color:var(--text);user-select:none;}
+
+/* ---------- Desktop Background ---------- */
+#desktop{
+  position:relative;width:100%;height:100%;
+  background:linear-gradient(135deg,#0d0015 0%,#1a0a2e 40%,#2a1045 70%,#150825 100%);
+  overflow:hidden;
+}
+#desktop::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%,rgba(255,105,180,0.3) 0%,transparent 100%),
+    radial-gradient(1px 1px at 30% 60%,rgba(168,85,247,0.3) 0%,transparent 100%),
+    radial-gradient(1px 1px at 50% 10%,rgba(0,255,255,0.2) 0%,transparent 100%),
+    radial-gradient(1px 1px at 70% 80%,rgba(255,105,180,0.3) 0%,transparent 100%),
+    radial-gradient(1px 1px at 90% 40%,rgba(168,85,247,0.2) 0%,transparent 100%),
+    radial-gradient(2px 2px at 20% 85%,rgba(255,20,147,0.4) 0%,transparent 100%),
+    radial-gradient(2px 2px at 60% 30%,rgba(0,255,255,0.3) 0%,transparent 100%),
+    radial-gradient(1px 1px at 80% 15%,rgba(255,215,0,0.2) 0%,transparent 100%);
+  pointer-events:none;z-index:0;
+}
+#desktop::after{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);
+  pointer-events:none;z-index:9999;
+}
+
+/* ---------- Desktop Icons ---------- */
+#desktop-icons{
+  position:absolute;top:20px;left:20px;z-index:10;
+  display:flex;flex-direction:column;gap:18px;
+}
+.desktop-icon{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  cursor:pointer;width:80px;padding:8px 4px;border-radius:4px;
+  transition:background .15s;
+}
+.desktop-icon:hover{background:rgba(255,105,180,0.15);border-radius:6px;}
+.desktop-icon:active{background:rgba(255,105,180,0.3);}
+.desktop-icon .icon-img{
+  width:48px;height:48px;display:flex;align-items:center;justify-content:center;
+  font-size:32px;filter:drop-shadow(0 0 6px rgba(255,105,180,0.5));
+}
+.desktop-icon .icon-label{
+  font-family:var(--font-jp);font-size:11px;color:#fff;
+  text-shadow:1px 1px 3px rgba(0,0,0,0.8);text-align:center;
+  line-height:1.3;
+}
+
+/* ---------- Floating Window ---------- */
+.window{
+  position:absolute;min-width:340px;
+  background:var(--panel-bg);
+  border:2px solid var(--border-light);
+  border-radius:8px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5),var(--glow-pink);
+  display:flex;flex-direction:column;
+  z-index:100;
+  transition:box-shadow .2s;
+}
+.window.active{z-index:200;box-shadow:0 12px 48px rgba(0,0,0,0.6),var(--glow-pink);}
+.window.minimized{display:none !important;}
+
+.window .titlebar{
+  height:var(--titlebar-h);min-height:var(--titlebar-h);
+  background:linear-gradient(90deg,var(--hot-pink),var(--neon-purple));
+  border-radius:6px 6px 0 0;
+  display:flex;align-items:center;padding:0 6px;gap:6px;
+  cursor:move;flex-shrink:0;
+}
+.window .titlebar .win-icon{font-size:14px;}
+.window .titlebar .win-title{
+  flex:1;font-family:var(--font-pixel);font-size:9px;color:#fff;
+  text-shadow:1px 1px 0 rgba(0,0,0,0.4);
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.window .titlebar .win-btns{display:flex;gap:4px;}
+.window .titlebar .win-btn{
+  width:20px;height:20px;border:1px solid rgba(255,255,255,0.3);
+  border-radius:3px;background:rgba(0,0,0,0.2);color:#fff;
+  font-size:12px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:background .15s;line-height:1;
+}
+.window .titlebar .win-btn:hover{background:rgba(255,255,255,0.2);}
+.window .titlebar .win-btn.close:hover{background:var(--red);}
+
+.window .win-body{
+  flex:1;overflow-y:auto;padding:12px;
+  scrollbar-width:thin;scrollbar-color:var(--pink) var(--panel-bg);
+}
+.window .win-body::-webkit-scrollbar{width:6px;}
+.window .win-body::-webkit-scrollbar-track{background:var(--panel-bg);}
+.window .win-body::-webkit-scrollbar-thumb{background:var(--pink);border-radius:3px;}
+
+/* ---------- Taskbar ---------- */
+#taskbar{
+  position:fixed;bottom:0;left:0;right:0;height:44px;
+  background:linear-gradient(180deg,#2d1b4e 0%,#1a0a2e 100%);
+  border-top:2px solid var(--border-light);
+  display:flex;align-items:center;padding:0 8px;gap:6px;
+  z-index:10000;
+}
+#start-btn{
+  height:34px;padding:0 14px;
+  background:linear-gradient(180deg,var(--hot-pink),#c4107a);
+  border:1px solid rgba(255,255,255,0.2);border-radius:4px;
+  color:#fff;font-family:var(--font-pixel);font-size:9px;
+  cursor:pointer;display:flex;align-items:center;gap:6px;
+  flex-shrink:0;transition:filter .15s;
+}
+#start-btn:hover{filter:brightness(1.2);}
+#start-btn:active{filter:brightness(0.9);}
+#taskbar-windows{display:flex;gap:4px;flex:1;overflow-x:auto;min-width:0;}
+.taskbar-item{
+  height:30px;padding:0 12px;
+  background:rgba(255,105,180,0.1);border:1px solid rgba(255,105,180,0.2);
+  border-radius:3px;color:var(--text);font-family:var(--font-jp);font-size:12px;
+  cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px;
+  transition:background .15s;flex-shrink:0;
+}
+.taskbar-item:hover{background:rgba(255,105,180,0.25);}
+.taskbar-item.active{background:rgba(255,105,180,0.35);border-color:var(--pink);}
+#taskbar-clock{
+  font-family:var(--font-pixel);font-size:9px;color:var(--cyan);
+  padding:0 10px;flex-shrink:0;text-shadow:var(--glow-cyan);
+}
+
+/* ---------- Player ---------- */
+.player-display{
+  background:#0d0015;border:2px solid var(--border-light);border-radius:6px;
+  padding:16px;margin-bottom:12px;text-align:center;
+  box-shadow:inset 0 0 20px rgba(255,105,180,0.1);
+  position:relative;overflow:hidden;
+}
+.player-display::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 1px,rgba(0,0,0,0.15) 1px,rgba(0,0,0,0.15) 2px);
+  pointer-events:none;
+}
+.player-status{font-family:var(--font-pixel);font-size:8px;color:var(--cyan);margin-bottom:8px;}
+.player-song{font-family:var(--font-jp);font-size:18px;color:var(--pink);
+  text-shadow:0 0 8px rgba(255,105,180,0.6);margin-bottom:4px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.player-sub{font-size:11px;color:var(--text-muted);}
+
+.player-controls{display:flex;justify-content:center;gap:10px;margin-bottom:14px;}
+.ctrl-btn{
+  width:52px;height:52px;border-radius:50%;
+  border:2px solid var(--pink);background:rgba(255,105,180,0.1);
+  color:var(--pink);font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.ctrl-btn:hover{background:rgba(255,105,180,0.25);box-shadow:var(--glow-pink);transform:scale(1.05);}
+.ctrl-btn:active{transform:scale(0.95);}
+.ctrl-btn.stop-btn{border-color:var(--red);color:var(--red);}
+.ctrl-btn.stop-btn:hover{background:rgba(255,71,87,0.25);box-shadow:0 0 10px rgba(255,71,87,0.5);}
+.ctrl-btn.play-list-btn{border-color:var(--neon-purple);color:var(--neon-purple);}
+.ctrl-btn.play-list-btn:hover{background:rgba(168,85,247,0.25);}
+
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.setting-item{
+  background:rgba(0,0,0,0.3);border:1px solid rgba(255,105,180,0.15);
+  border-radius:6px;padding:10px;
+}
+.setting-item label{
+  display:block;font-family:var(--font-pixel);font-size:7px;
+  color:var(--cyan);margin-bottom:6px;
+}
+.setting-item input[type=range]{width:100%;accent-color:var(--pink);height:4px;}
+.setting-item .val{font-size:13px;color:var(--pink);text-align:center;margin-top:4px;}
+.setting-item.checkbox-item{display:flex;align-items:center;gap:8px;}
+.setting-item.checkbox-item label{margin-bottom:0;flex:1;}
+
+input[type=checkbox]{
+  appearance:none;width:18px;height:18px;border:2px solid var(--pink);
+  border-radius:3px;background:transparent;cursor:pointer;flex-shrink:0;
+  position:relative;
+}
+input[type=checkbox]:checked{background:var(--pink);}
+input[type=checkbox]:checked::after{
+  content:'✓';position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:12px;font-weight:bold;
+}
+
+/* ---------- Song List ---------- */
+.song-list{display:flex;flex-direction:column;gap:4px;}
+.song-item{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+  background:rgba(0,0,0,0.2);border:1px solid transparent;
+  border-radius:4px;cursor:pointer;transition:all .15s;
+}
+.song-item:hover{background:rgba(255,105,180,0.1);border-color:rgba(255,105,180,0.3);}
+.song-item.selected{background:rgba(255,105,180,0.18);border-color:var(--pink);}
+.song-item .song-icon{color:var(--pink);font-size:14px;flex-shrink:0;}
+.song-item .song-name{
+  flex:1;font-family:var(--font-jp);font-size:13px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.song-item .song-actions{display:flex;gap:4px;}
+.song-item .song-actions button{
+  background:none;border:1px solid rgba(255,105,180,0.2);
+  color:var(--text-muted);border-radius:3px;padding:2px 6px;font-size:11px;
+  cursor:pointer;transition:all .15s;
+}
+.song-item .song-actions button:hover{border-color:var(--pink);color:var(--pink);}
+.song-item .song-actions button.del-btn:hover{border-color:var(--red);color:var(--red);}
+
+/* ---------- Playlist ---------- */
+.playlist-panel{display:flex;flex-direction:column;gap:6px;}
+.playlist-item{
+  padding:10px 12px;background:rgba(0,0,0,0.2);
+  border:1px solid transparent;border-radius:4px;
+  cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:8px;
+}
+.playlist-item:hover{background:rgba(255,105,180,0.1);border-color:rgba(255,105,180,0.3);}
+.playlist-item.active{background:rgba(255,105,180,0.15);border-color:var(--pink);}
+.playlist-item .pl-icon{font-size:16px;color:var(--neon-purple);}
+.playlist-item .pl-name{flex:1;font-family:var(--font-jp);font-size:13px;}
+.playlist-item .pl-count{font-size:11px;color:var(--text-muted);}
+
+/* ---------- Buttons ---------- */
+.btn{
+  padding:8px 16px;border-radius:4px;border:1px solid var(--pink);
+  background:rgba(255,105,180,0.15);color:var(--pink);
+  font-family:var(--font-jp);font-size:13px;cursor:pointer;transition:all .15s;
+}
+.btn:hover{background:rgba(255,105,180,0.3);box-shadow:var(--glow-pink);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.btn-purple{border-color:var(--neon-purple);color:var(--neon-purple);background:rgba(168,85,247,0.15);}
+.btn-purple:hover{background:rgba(168,85,247,0.3);}
+.btn-cyan{border-color:var(--cyan);color:var(--cyan);background:rgba(0,255,255,0.1);}
+.btn-cyan:hover{background:rgba(0,255,255,0.2);}
+
+.input{
+  width:100%;padding:8px 10px;
+  background:rgba(0,0,0,0.3);border:1px solid rgba(255,105,180,0.2);
+  border-radius:4px;color:var(--text);font-family:var(--font-jp);font-size:13px;
+  outline:none;transition:border-color .15s;
+}
+.input:focus{border-color:var(--pink);box-shadow:0 0 6px rgba(255,105,180,0.3);}
+.input::placeholder{color:rgba(255,255,255,0.25);}
+
+/* ---------- Toast ---------- */
+#toast-container{
+  position:fixed;top:20px;right:20px;z-index:99999;
+  display:flex;flex-direction:column;gap:8px;pointer-events:none;
+}
+.toast{
+  padding:10px 16px;border-radius:6px;
+  background:linear-gradient(135deg,var(--panel-bg),#3d2b5e);
+  border:1px solid var(--pink);box-shadow:var(--glow-pink);
+  font-family:var(--font-jp);font-size:13px;color:var(--text);
+  animation:toastIn .3s ease;max-width:320px;pointer-events:auto;
+}
+.toast.error{border-color:var(--red);box-shadow:0 0 10px rgba(255,71,87,0.4);}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px);}to{opacity:1;transform:none;}}
+
+/* ---------- Tabs ---------- */
+.tab-bar{display:flex;gap:2px;margin-bottom:10px;}
+.tab-btn{
+  padding:6px 14px;background:rgba(0,0,0,0.2);
+  border:1px solid transparent;border-bottom:none;
+  border-radius:4px 4px 0 0;font-family:var(--font-jp);font-size:12px;
+  color:var(--text-muted);cursor:pointer;transition:all .15s;
+}
+.tab-btn:hover{color:var(--text);background:rgba(255,105,180,0.1);}
+.tab-btn.active{color:var(--pink);background:var(--panel-bg);border-color:var(--border-light);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+.section-header{
+  font-family:var(--font-pixel);font-size:8px;color:var(--cyan);
+  margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(0,255,255,0.15);
+}
+
+/* ---------- Visualizer ---------- */
+.visualizer{display:flex;gap:2px;justify-content:center;height:30px;align-items:flex-end;margin:10px 0;}
+.vis-bar{
+  width:4px;background:var(--pink);border-radius:2px 2px 0 0;
+  animation:visBar 0.8s ease-in-out infinite alternate;
+}
+.vis-bar:nth-child(2){animation-delay:0.1s;background:var(--hot-pink);}
+.vis-bar:nth-child(3){animation-delay:0.2s;background:var(--neon-purple);}
+.vis-bar:nth-child(4){animation-delay:0.3s;background:var(--pink);}
+.vis-bar:nth-child(5){animation-delay:0.15s;background:var(--cyan);}
+.vis-bar:nth-child(6){animation-delay:0.25s;background:var(--hot-pink);}
+.vis-bar:nth-child(7){animation-delay:0.35s;background:var(--neon-purple);}
+.vis-bar:nth-child(8){animation-delay:0.05s;background:var(--pink);}
+@keyframes visBar{from{height:4px;}to{height:28px;}}
+.visualizer.paused .vis-bar{animation-play-state:paused;height:4px;}
+
+.resize-handle{
+  position:absolute;bottom:0;right:0;width:16px;height:16px;cursor:nwse-resize;
+}
+.resize-handle::after{
+  content:'';position:absolute;bottom:3px;right:3px;
+  width:8px;height:8px;
+  border-right:2px solid rgba(255,105,180,0.4);
+  border-bottom:2px solid rgba(255,105,180,0.4);
+}
+
+/* ---------- Countdown ---------- */
+#countdown-overlay{
+  display:none;position:fixed;inset:0;z-index:50000;
+  background:rgba(0,0,0,0.7);
+  justify-content:center;align-items:center;flex-direction:column;
+}
+#countdown-overlay.show{display:flex;}
+#countdown-overlay .cd-num{
+  font-family:var(--font-pixel);font-size:72px;color:var(--pink);
+  text-shadow:0 0 40px rgba(255,105,180,0.8);
+  animation:cdPulse 1s ease infinite;
+}
+#countdown-overlay .cd-text{
+  font-family:var(--font-jp);font-size:16px;color:var(--text-muted);margin-top:12px;
+}
+@keyframes cdPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
+
+.deco-text{
+  position:absolute;font-family:var(--font-pixel);font-size:7px;
+  color:rgba(255,105,180,0.08);pointer-events:none;white-space:nowrap;
+}
+
+/* ---------- Loading overlay ---------- */
+#loading-overlay{
+  position:fixed;inset:0;z-index:99998;
+  background:var(--deep-purple);
+  display:flex;justify-content:center;align-items:center;flex-direction:column;gap:16px;
+  transition:opacity .5s;
+}
+#loading-overlay.hidden{opacity:0;pointer-events:none;}
+#loading-overlay .ld-title{
+  font-family:var(--font-pixel);font-size:14px;color:var(--pink);
+  text-shadow:var(--glow-pink);
+}
+#loading-overlay .ld-dots span{
+  display:inline-block;width:8px;height:8px;margin:0 4px;
+  background:var(--pink);border-radius:50%;
+  animation:ldDot .6s ease-in-out infinite alternate;
+}
+#loading-overlay .ld-dots span:nth-child(2){animation-delay:.15s;}
+#loading-overlay .ld-dots span:nth-child(3){animation-delay:.3s;}
+@keyframes ldDot{from{opacity:.2;transform:scale(.7);}to{opacity:1;transform:scale(1);}}
+
+@media(max-width:768px){
+  .window{min-width:280px !important;width:calc(100vw - 20px) !important;left:10px !important;}
+  .settings-grid{grid-template-columns:1fr;}
+  #desktop-icons{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- Loading screen while pywebview bridge initializes -->
+<div id="loading-overlay">
+  <div class="ld-title">♡ KAngel Piano ♡</div>
+  <div class="ld-dots"><span></span><span></span><span></span></div>
+</div>
+
+<!-- ==================== DESKTOP ==================== -->
+<div id="desktop">
+  <div class="deco-text" style="top:15%;right:5%;transform:rotate(-15deg);">KANGEL_PIANO_v1.0</div>
+  <div class="deco-text" style="bottom:20%;left:8%;transform:rotate(10deg);">♡ NEEDY GIRL ♡</div>
+  <div class="deco-text" style="top:40%;right:15%;transform:rotate(-5deg);">INTERNET OVERDOSE</div>
+
+  <div id="desktop-icons">
+    <div class="desktop-icon" onclick="toggleWindow('player-win')">
+      <div class="icon-img">♪</div>
+      <div class="icon-label">KAngel<br>Piano</div>
+    </div>
+    <div class="desktop-icon" onclick="toggleWindow('library-win')">
+      <div class="icon-img">📁</div>
+      <div class="icon-label">曲库</div>
+    </div>
+    <div class="desktop-icon" onclick="toggleWindow('playlist-win')">
+      <div class="icon-img">💿</div>
+      <div class="icon-label">歌单</div>
+    </div>
+  </div>
+
+  <!-- ==================== PLAYER WINDOW ==================== -->
+  <div class="window active" id="player-win" style="width:420px;top:40px;left:140px;">
+    <div class="titlebar" onmousedown="startDrag(event,'player-win')">
+      <span class="win-icon">♪</span>
+      <span class="win-title">KAngel_Piano.exe</span>
+      <div class="win-btns">
+        <div class="win-btn" onclick="minimizeWin('player-win')">_</div>
+        <div class="win-btn close" onclick="hideWin('player-win')">×</div>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="player-display">
+        <div class="player-status" id="player-status-text">STANDBY</div>
+        <div class="visualizer paused" id="visualizer">
+          <div class="vis-bar"></div><div class="vis-bar"></div><div class="vis-bar"></div>
+          <div class="vis-bar"></div><div class="vis-bar"></div><div class="vis-bar"></div>
+          <div class="vis-bar"></div><div class="vis-bar"></div>
+        </div>
+        <div class="player-song" id="player-song-name">no song loaded</div>
+        <div class="player-sub" id="player-sub-info">选择一首曲子开始演奏吧 ♡</div>
+      </div>
+
+      <div class="player-controls">
+        <button class="ctrl-btn play-list-btn" onclick="playCurrentPlaylist()" title="播放歌单">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6l10 6-10 6V6z"/><line x1="3" y1="4" x2="3" y2="20"/></svg>
+        </button>
+        <button class="ctrl-btn" onclick="playSelected()" title="播放选中" id="play-btn">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button class="ctrl-btn stop-btn" onclick="stopPlayback()" title="停止">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+        </button>
+      </div>
+
+      <div class="section-header">SETTINGS</div>
+      <div class="settings-grid">
+        <div class="setting-item">
+          <label>OCTAVE SHIFT</label>
+          <input type="range" id="octave-shift" min="-36" max="36" step="12" value="0"
+                 oninput="document.getElementById('oct-val').textContent=(this.value>0?'+':'')+this.value">
+          <div class="val" id="oct-val">0</div>
+        </div>
+        <div class="setting-item">
+          <label>MIN VELOCITY</label>
+          <input type="range" id="min-velocity" min="0" max="100" value="0"
+                 oninput="document.getElementById('vel-val').textContent=this.value">
+          <div class="val" id="vel-val">0</div>
+        </div>
+        <div class="setting-item checkbox-item">
+          <input type="checkbox" id="enable-pedal">
+          <label>PEDAL</label>
+        </div>
+        <div class="setting-item checkbox-item">
+          <input type="checkbox" id="loop-forever" checked>
+          <label>LOOP</label>
+        </div>
+      </div>
+    </div>
+    <div class="resize-handle" onmousedown="startResize(event,'player-win')"></div>
+  </div>
+
+  <!-- ==================== LIBRARY WINDOW ==================== -->
+  <div class="window" id="library-win" style="width:460px;top:60px;left:580px;height:500px;">
+    <div class="titlebar" onmousedown="startDrag(event,'library-win')">
+      <span class="win-icon">📁</span>
+      <span class="win-title">song_library.exe</span>
+      <div class="win-btns">
+        <div class="win-btn" onclick="minimizeWin('library-win')">_</div>
+        <div class="win-btn close" onclick="hideWin('library-win')">×</div>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="tab-bar">
+        <div class="tab-btn active" onclick="switchLibTab(this,'root')">全部曲目</div>
+        <div class="tab-btn" onclick="switchLibTab(this,'playlist')">歌单内容</div>
+      </div>
+
+      <div class="tab-content active" id="lib-root">
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <input class="input" id="song-search" placeholder="搜索曲目..." oninput="filterSongs()">
+          <button class="btn btn-sm btn-cyan" onclick="importMidi()">导入</button>
+        </div>
+        <div class="song-list" id="root-song-list"></div>
+      </div>
+
+      <div class="tab-content" id="lib-playlist">
+        <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;">
+          <select class="input" id="playlist-select" onchange="loadPlaylistSongs(this.value)" style="flex:1;">
+            <option value="">-- 选择歌单 --</option>
+          </select>
+          <button class="btn btn-sm" onclick="importMidiToPlaylist()">导入到歌单</button>
+        </div>
+        <div class="song-list" id="playlist-song-list"></div>
+      </div>
+    </div>
+    <div class="resize-handle" onmousedown="startResize(event,'library-win')"></div>
+  </div>
+
+  <!-- ==================== PLAYLIST WINDOW ==================== -->
+  <div class="window" id="playlist-win" style="width:320px;top:100px;left:280px;height:420px;">
+    <div class="titlebar" onmousedown="startDrag(event,'playlist-win')">
+      <span class="win-icon">💿</span>
+      <span class="win-title">playlists.exe</span>
+      <div class="win-btns">
+        <div class="win-btn" onclick="minimizeWin('playlist-win')">_</div>
+        <div class="win-btn close" onclick="hideWin('playlist-win')">×</div>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="section-header">PLAYLISTS</div>
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        <input class="input" id="new-pl-name" placeholder="新歌单名称..."
+               onkeydown="if(event.key==='Enter')createPlaylist()">
+        <button class="btn btn-sm btn-purple" onclick="createPlaylist()">新建</button>
+      </div>
+      <div class="playlist-panel" id="playlist-panel">
+        <div class="playlist-item active" onclick="selectPlaylist('')" data-pl="">
+          <span class="pl-icon">♪</span>
+          <span class="pl-name">全部曲目</span>
+          <span class="pl-count" id="root-count">0</span>
+        </div>
+      </div>
+    </div>
+    <div class="resize-handle" onmousedown="startResize(event,'playlist-win')"></div>
+  </div>
+</div>
+
+<!-- ==================== TASKBAR ==================== -->
+<div id="taskbar">
+  <button id="start-btn" onclick="showAllWindows()">♡ KAngel</button>
+  <div id="taskbar-windows"></div>
+  <div id="taskbar-clock"></div>
+</div>
+
+<div id="countdown-overlay">
+  <div class="cd-num" id="cd-num">3</div>
+  <div class="cd-text">切换到游戏窗口 ♡</div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+/* ============================================================
+   KAngel Piano — pywebview bridge
+   All calls go through  window.pywebview.api.*
+   ============================================================ */
+
+let pyApi = null;          // set once pywebviewready fires
+let selectedSong = null;   // {filename, playlist}
+let currentPlaylist = '';
+let allRootSongs = [];
+
+// ---- Wait for pywebview bridge ----
+window.addEventListener('pywebviewready', () => {
+  pyApi = window.pywebview.api;
+  document.getElementById('loading-overlay').classList.add('hidden');
+  init();
+});
+
+async function init() {
+  await Promise.all([loadRootSongs(), loadPlaylists()]);
+  updateTaskbar();
+  updateClock();
+  setInterval(updateClock, 10000);
+  setInterval(pollStatus, 800);
+}
+
+// ==================== Data Loading ====================
+
+async function loadRootSongs() {
+  try {
+    const data = await pyApi.get_songs();
+    allRootSongs = data || [];
+    renderRootSongs(allRootSongs);
+    document.getElementById('root-count').textContent = allRootSongs.length;
+  } catch (e) { toast('加载曲目失败', true); }
+}
+
+async function loadPlaylists() {
+  try {
+    const data = await pyApi.get_playlists();
+    if (!data) return;
+    const panel = document.getElementById('playlist-panel');
+    const rootEntry = panel.querySelector('[data-pl=""]');
+    panel.innerHTML = '';
+    panel.appendChild(rootEntry);
+
+    data.forEach(pl => {
+      const div = document.createElement('div');
+      div.className = 'playlist-item' + (currentPlaylist === pl.name ? ' active' : '');
+      div.setAttribute('data-pl', pl.name);
+      div.onclick = () => selectPlaylist(pl.name);
+      div.innerHTML = `<span class="pl-icon">💿</span>
+        <span class="pl-name">${esc(pl.name)}</span>
+        <span class="pl-count">${pl.count}</span>`;
+      panel.appendChild(div);
+    });
+
+    const sel = document.getElementById('playlist-select');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">-- 选择歌单 --</option>';
+    data.forEach(pl => {
+      const opt = document.createElement('option');
+      opt.value = pl.name;
+      opt.textContent = `${pl.name} (${pl.count})`;
+      if (pl.name === cur) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  } catch (e) { toast('加载歌单失败', true); }
+}
+
+async function loadPlaylistSongs(name) {
+  const list = document.getElementById('playlist-song-list');
+  if (!name) {
+    list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;">选择一个歌单查看内容</div>';
+    return;
+  }
+  try {
+    const data = await pyApi.get_playlist_songs(name);
+    renderPlaylistSongs(data || [], name);
+  } catch (e) { toast('加载失败', true); }
+}
+
+// ==================== Rendering ====================
+
+function renderRootSongs(songs) {
+  const list = document.getElementById('root-song-list');
+  if (!songs.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;">还没有曲目哦~ 点击「导入」添加 .mid 文件</div>';
+    return;
+  }
+  list.innerHTML = songs.map(s => {
+    const sel = selectedSong && selectedSong.filename === s && !selectedSong.playlist;
+    return `<div class="song-item${sel ? ' selected' : ''}" onclick="selectSong(this,'${ea(s)}','')">
+      <span class="song-icon">♪</span>
+      <span class="song-name">${esc(s.replace('.mid',''))}</span>
+      <div class="song-actions">
+        <button onclick="event.stopPropagation();playSingle('${ea(s)}','')" title="播放">▶</button>
+        <button onclick="event.stopPropagation();addToPlaylistPrompt('${ea(s)}')" title="添加到歌单">+</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderPlaylistSongs(songs, plName) {
+  const list = document.getElementById('playlist-song-list');
+  if (!songs.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;">歌单是空的</div>';
+    return;
+  }
+  list.innerHTML = songs.map(s => `
+    <div class="song-item" onclick="selectSong(this,'${ea(s)}','${ea(plName)}')">
+      <span class="song-icon">♪</span>
+      <span class="song-name">${esc(s.replace('.mid',''))}</span>
+      <div class="song-actions">
+        <button onclick="event.stopPropagation();playSingle('${ea(s)}','${ea(plName)}')" title="播放">▶</button>
+        <button class="del-btn" onclick="event.stopPropagation();deleteSong('${ea(plName)}','${ea(s)}')" title="删除">×</button>
+      </div>
+    </div>`).join('');
+}
+
+function filterSongs() {
+  const q = document.getElementById('song-search').value.toLowerCase();
+  renderRootSongs(allRootSongs.filter(s => s.toLowerCase().includes(q)));
+}
+
+// ==================== Selection ====================
+
+function selectSong(el, filename, playlist) {
+  selectedSong = { filename, playlist };
+  document.getElementById('player-song-name').textContent = filename.replace('.mid', '');
+  document.getElementById('player-sub-info').textContent =
+    playlist ? `歌单: ${playlist}` : '全部曲目';
+  document.querySelectorAll('.song-item').forEach(e => e.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+}
+
+function selectPlaylist(name) {
+  currentPlaylist = name;
+  document.querySelectorAll('.playlist-item').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('data-pl') === name);
+  });
+}
+
+// ==================== Playback ====================
+
+function getSettings() {
+  return {
+    enable_pedal: document.getElementById('enable-pedal').checked,
+    octave_shift: parseInt(document.getElementById('octave-shift').value),
+    min_velocity: parseInt(document.getElementById('min-velocity').value),
+    loop_forever: document.getElementById('loop-forever').checked,
+    countdown: 3,
+  };
+}
+
+async function playSelected() {
+  if (!selectedSong) { toast('请先选择一首曲目'); return; }
+  await playSingle(selectedSong.filename, selectedSong.playlist);
+}
+
+async function playSingle(filename, playlist) {
+  const s = getSettings();
+  const res = await pyApi.play_single(
+    filename, playlist, s.enable_pedal,
+    s.octave_shift, s.min_velocity, s.countdown
+  );
+  if (res.error) { toast(res.error, true); return; }
+  showCountdown(s.countdown);
+}
+
+async function playCurrentPlaylist() {
+  const s = getSettings();
+  const res = await pyApi.play_playlist(
+    currentPlaylist, s.enable_pedal,
+    s.octave_shift, s.min_velocity, s.loop_forever, s.countdown
+  );
+  if (res.error) { toast(res.error, true); return; }
+  showCountdown(s.countdown);
+}
+
+async function stopPlayback() {
+  await pyApi.stop_playback();
+  updatePlayerUI(false);
+  hideCountdown();
+}
+
+async function pollStatus() {
+  try {
+    const st = await pyApi.get_status();
+    if (st) updatePlayerUI(st.playing, st);
+  } catch (_) {}
+}
+
+function updatePlayerUI(playing, st) {
+  const vis = document.getElementById('visualizer');
+  const txt = document.getElementById('player-status-text');
+  if (playing && st) {
+    vis.classList.remove('paused');
+    txt.textContent = st.mode === 'playlist'
+      ? `PLAYING [${st.song_index}/${st.total_songs}]` : 'NOW PLAYING';
+    if (st.current_song) {
+      document.getElementById('player-song-name').textContent = st.current_song.replace('.mid', '');
+      document.getElementById('player-sub-info').textContent =
+        st.mode === 'playlist' ? `歌单: ${st.playlist_name || '全部曲目'}` : '单曲播放';
+    }
+    hideCountdown();
+  } else {
+    vis.classList.add('paused');
+    txt.textContent = 'STANDBY';
+  }
+}
+
+// ==================== Countdown ====================
+
+let _cdTimer = null;
+function showCountdown(sec) {
+  const ov = document.getElementById('countdown-overlay');
+  const num = document.getElementById('cd-num');
+  ov.classList.add('show');
+  let r = sec; num.textContent = r;
+  clearInterval(_cdTimer);
+  _cdTimer = setInterval(() => { r--; if (r <= 0) hideCountdown(); else num.textContent = r; }, 1000);
+}
+function hideCountdown() {
+  clearInterval(_cdTimer);
+  document.getElementById('countdown-overlay').classList.remove('show');
+}
+
+// ==================== Playlist Mgmt ====================
+
+async function createPlaylist() {
+  const input = document.getElementById('new-pl-name');
+  const name = input.value.trim();
+  if (!name) return;
+  const res = await pyApi.create_playlist(name);
+  if (res.success) {
+    toast(`歌单「${name}」创建成功 ♡`);
+    input.value = '';
+    loadPlaylists();
+  } else {
+    toast(res.error, true);
+  }
+}
+
+async function addToPlaylistPrompt(filename) {
+  const pls = await pyApi.get_playlists();
+  if (!pls || !pls.length) { toast('还没有歌单，请先创建一个', true); return; }
+  const name = prompt('输入要添加到的歌单名称:\n' + pls.map(p => '  • ' + p.name).join('\n'));
+  if (!name) return;
+  const res = await pyApi.add_song_to_playlist_by_name(filename, name);
+  if (res.success) {
+    toast(`已添加到「${name}」♡`);
+    loadPlaylists();
+    if (document.getElementById('playlist-select').value === name)
+      loadPlaylistSongs(name);
+  } else {
+    toast(res.error || '添加失败', true);
+  }
+}
+
+async function deleteSong(playlist, filename) {
+  if (!confirm(`确定要从「${playlist}」删除「${filename}」吗？`)) return;
+  const res = await pyApi.remove_song(playlist, filename);
+  if (res.success) {
+    toast('已删除 ♡');
+    loadPlaylistSongs(playlist);
+    loadPlaylists();
+  } else {
+    toast(res.error || '删除失败', true);
+  }
+}
+
+// ==================== File Import (native dialog) ====================
+
+async function importMidi() {
+  const res = await pyApi.import_midi();
+  if (res.cancelled) return;
+  if (res.success) {
+    toast(`导入成功: ${res.files.join(', ')} ♡`);
+    loadRootSongs();
+  } else {
+    toast(res.error || '导入失败', true);
+  }
+}
+
+async function importMidiToPlaylist() {
+  const pl = document.getElementById('playlist-select').value;
+  if (!pl) { toast('请先选择一个歌单', true); return; }
+  const res = await pyApi.import_midi_to_playlist(pl);
+  if (res.cancelled) return;
+  if (res.success) {
+    toast(`导入成功 ♡`);
+    loadPlaylistSongs(pl);
+    loadPlaylists();
+  } else {
+    toast(res.error || '导入失败', true);
+  }
+}
+
+// ==================== Window Management ====================
+
+const WIN_DEFS = {
+  'player-win':   { title: '♪ KAngel Piano', icon: '♪' },
+  'library-win':  { title: '📁 曲库',       icon: '📁' },
+  'playlist-win': { title: '💿 歌单',       icon: '💿' },
+};
+
+let dragData = null, resizeData = null;
+
+function startDrag(e, id) {
+  bringToFront(id);
+  const w = document.getElementById(id);
+  dragData = { win: w, sx: e.clientX - w.offsetLeft, sy: e.clientY - w.offsetTop };
+  e.preventDefault();
+}
+function startResize(e, id) {
+  const w = document.getElementById(id);
+  resizeData = { win: w, sx: e.clientX, sy: e.clientY, sw: w.offsetWidth, sh: w.offsetHeight };
+  e.preventDefault(); e.stopPropagation();
+}
+document.addEventListener('mousemove', e => {
+  if (dragData) {
+    dragData.win.style.left = Math.max(0, Math.min(e.clientX - dragData.sx, innerWidth - 100)) + 'px';
+    dragData.win.style.top  = Math.max(0, Math.min(e.clientY - dragData.sy, innerHeight - 80)) + 'px';
+  }
+  if (resizeData) {
+    resizeData.win.style.width  = Math.max(280, resizeData.sw + e.clientX - resizeData.sx) + 'px';
+    resizeData.win.style.height = Math.max(200, resizeData.sh + e.clientY - resizeData.sy) + 'px';
+  }
+});
+document.addEventListener('mouseup', () => { dragData = null; resizeData = null; });
+
+function bringToFront(id) {
+  document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  updateTaskbar();
+}
+function minimizeWin(id) { document.getElementById(id).classList.add('minimized'); updateTaskbar(); }
+function hideWin(id)     { document.getElementById(id).classList.add('minimized'); updateTaskbar(); }
+function toggleWindow(id) {
+  const w = document.getElementById(id);
+  w.classList.contains('minimized') ? w.classList.remove('minimized') : null;
+  bringToFront(id);
+  updateTaskbar();
+}
+function showAllWindows() {
+  Object.keys(WIN_DEFS).forEach(id => document.getElementById(id).classList.remove('minimized'));
+  updateTaskbar();
+}
+function updateTaskbar() {
+  const c = document.getElementById('taskbar-windows');
+  c.innerHTML = '';
+  Object.entries(WIN_DEFS).forEach(([id, d]) => {
+    const w = document.getElementById(id);
+    const min = w.classList.contains('minimized');
+    const act = w.classList.contains('active') && !min;
+    const item = document.createElement('div');
+    item.className = 'taskbar-item' + (act ? ' active' : '');
+    item.innerHTML = `<span>${d.icon}</span> <span>${d.title}</span>`;
+    item.onclick = () => toggleWindow(id);
+    if (min) item.style.opacity = '0.5';
+    c.appendChild(item);
+  });
+}
+
+// ==================== Tabs ====================
+
+function switchLibTab(btn, tabId) {
+  document.querySelectorAll('#library-win .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#library-win .tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('lib-' + tabId).classList.add('active');
+  if (tabId === 'playlist') {
+    const v = document.getElementById('playlist-select').value;
+    if (v) loadPlaylistSongs(v);
+  }
+}
+
+// ==================== Utilities ====================
+
+function toast(msg, err) {
+  const c = document.getElementById('toast-container');
+  const d = document.createElement('div');
+  d.className = 'toast' + (err ? ' error' : '');
+  d.textContent = msg;
+  c.appendChild(d);
+  setTimeout(() => d.remove(), 3500);
+}
+function updateClock() {
+  const n = new Date();
+  document.getElementById('taskbar-clock').textContent =
+    String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+}
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function ea(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+</script>
+</body>
+</html>
